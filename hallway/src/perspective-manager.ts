@@ -40,10 +40,6 @@ export class PerspectiveManager{
     compute(){
         let test = Solver.solve2VP(this.calibrationSettingsBase, this.calibrationSettings2VP, this.xPair, this.zPair, this.image);
         if ( test.errors.length == 0){
-            console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-            console.log(test.cameraParameters?.vanishingPoints[0]);
-            console.log(test.cameraParameters?.vanishingPoints[1]);
-            console.log(test.cameraParameters?.vanishingPoints[2]);
 
             this.camera.matrixWorldAutoUpdate = false;
 
@@ -86,6 +82,7 @@ export class PerspectiveManager{
             );
 
             this.camera.updateMatrixWorld(true);
+            this.camera.matrixWorld.decompose(this.camera.position, this.camera.quaternion, this.camera.scale);
         }
     }
 }
