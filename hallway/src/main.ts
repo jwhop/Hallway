@@ -8,6 +8,7 @@ import { zipSync, strToU8 } from 'three/addons/libs/fflate.module.js';
 import * as ts from "typescript";
 import { TransformControls } from 'three/examples/jsm/Addons.js';
 import { MeshBVH, StaticGeometryGenerator } from 'three-mesh-bvh';
+import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js';
 
 class EditorObject{
   element: HTMLElement;
@@ -155,7 +156,7 @@ class EditorObject{
     function loop() {
       const delta = clock.getDelta();
 
-      updateCharacter( delta );
+      updatePlayer( delta );
 
       threeRenderer.resetState();
       threeRenderer.render(scene, threeCamera);
@@ -251,6 +252,171 @@ class EditorObject{
       readyWalkableGeometry();
     });
 
+    let playerIsOnGround = false;
+    let playerVelocity = new THREE.Vector3();
+    let player = new THREE.Mesh(
+        new RoundedBoxGeometry( 1.0, 2.0, 1.0, 10, 0.5 ),
+        new THREE.MeshStandardMaterial()
+    );
+
+    player.geometry.translate( 0, 0.0, 0 );
+    player.position.set(0,0.25,0);
+    player.capsuleInfo = {
+      radius: 0.5,
+      segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  0.0, 0.0 ) )
+    };
+    scene.add(player);
+    let tempVector = new THREE.Vector3();
+    let upVector = new THREE.Vector3(0, 1, 0);
+    let tempSegment = new THREE.Line3();
+
+    const params = {
+
+      gravity: - 10,
+      playerSpeed: 4,
+      physicsSteps: 5,
+
+    };
+
+    let tempBox = new THREE.Box3();
+    let tempMat = new THREE.Matrix4();
+    let tempVector2 = new THREE.Vector3();
+    let fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
+    let init = false;
+    function updatePlayer( delta: number ) {
+      if(collider == null){
+        return;
+      }
+      else{
+        if(!init){
+          app.stage.visible = false;
+          init = true;
+          collider.material.visible = false;
+          scene.remove(environmentMeshes);
+        }
+      }
+      if ( playerIsOnGround ) {
+
+        playerVelocity.y = delta * params.gravity;
+
+      } else {
+
+        playerVelocity.y += delta * params.gravity;
+
+      }
+
+      // adjust the player model
+      
+      player.position.addScaledVector( playerVelocity, delta );
+
+      // move the player
+      const angle = 0;//controls.getAzimuthalAngle();
+      tempVector.set(0,0,0);
+      if ( fwdPressed ) {
+
+        tempVector.set( 0, 0, - 1 ).applyAxisAngle( upVector, angle );
+      }
+
+      if ( bkdPressed ) {
+
+        tempVector.set( 0, 0, 1 ).applyAxisAngle( upVector, angle );
+      }
+
+      if ( lftPressed ) {
+
+        tempVector.set( - 1, 0, 0 ).applyAxisAngle( upVector, angle );
+      }
+
+      if ( rgtPressed ) {
+
+        tempVector.set( 1, 0, 0 ).applyAxisAngle( upVector, angle );
+
+      }
+
+      const fwdVector = new THREE.Vector3(player.position.x, player.position.y + 0.5, player.position.z);
+      fwdVector.addScaledVector(tempVector, params.playerSpeed * delta);
+      const raycaster = new THREE.Raycaster(fwdVector, new THREE.Vector3(0,-1,0), 0.001, 10);
+      raycaster.layers.set(2);
+      const intersects = raycaster.intersectObjects(scene.children, true);
+      
+      if(intersects.length > 0)
+      {
+        player.position.addScaledVector( tempVector, params.playerSpeed * delta );
+      }
+      player.updateMatrixWorld();
+
+      // adjust player position based on collisions
+      const capsuleInfo = player.capsuleInfo;
+      tempBox.makeEmpty();
+      tempMat.copy( collider!.matrixWorld ).invert();
+      tempSegment.copy( capsuleInfo.segment );
+
+      // get the position of the capsule in the local space of the collider
+      tempSegment.start.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
+      tempSegment.end.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
+
+      // get the axis aligned bounding box of the capsule
+      tempBox.expandByPoint( tempSegment.start );
+      tempBox.expandByPoint( tempSegment.end );
+
+      tempBox.min.addScalar( - capsuleInfo.radius );
+      tempBox.max.addScalar( capsuleInfo.radius );
+
+      collider!.geometry.boundsTree!.shapecast( {
+
+        intersectsBounds: box => box.intersectsBox( tempBox ),
+
+        intersectsTriangle: tri => {
+          // check if the triangle is intersecting the capsule and adjust the
+          // capsule position if it is.
+          const triPoint = tempVector;
+          const capsulePoint = tempVector2;
+
+          const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
+          if ( distance < capsuleInfo.radius ) {
+
+            const depth = capsuleInfo.radius - distance;
+            const direction = capsulePoint.sub( triPoint ).normalize();
+
+            tempSegment.start.addScaledVector( direction, depth );
+            tempSegment.end.addScaledVector( direction, depth );
+
+          }
+        }
+
+      } );
+
+      // get the adjusted position of the capsule collider in world space after checking
+      // triangle collisions and moving it. capsuleInfo.segment.start is assumed to be
+      // the origin of the player model.
+      const newPosition = tempVector;
+      newPosition.copy( tempSegment.start ).applyMatrix4( collider!.matrixWorld );
+
+      // check how much the collider was moved
+      const deltaVector = tempVector2;
+      deltaVector.subVectors( newPosition, player.position );
+
+      // if the player was primarily adjusted vertically we assume it's on something we should consider ground
+      playerIsOnGround = deltaVector.y > Math.abs( delta * playerVelocity.y * 0.25 );
+
+      const offset = Math.max( 0.0, deltaVector.length() - 1e-5 );
+      deltaVector.normalize().multiplyScalar( offset );
+      player.position.add( deltaVector );
+      
+
+      if ( ! playerIsOnGround ) {
+
+        deltaVector.normalize();
+        playerVelocity.addScaledVector( deltaVector, - deltaVector.dot( playerVelocity ) );
+
+      } else {
+
+        playerVelocity.set( 0, 0, 0 );
+
+      }
+    }
+
+
     function loadModel() {
 
       // Hide the pixi UI
@@ -321,103 +487,38 @@ class EditorObject{
       console.log(threeCamera.toJSON());
     }
 
-    function updateCharacter( delta : number ) {
-
-      const fade = controls.fadeDuration;
-      const key = controls.key;
-      const up = controls.up;
-      const ease = controls.ease;
-      const rotate = controls.rotate;
-      const position = controls.position;
-
-      const active = key[ 0 ] === 0 && key[ 1 ] === 0 ? false : true;
-      const play = active ? ( key[ 2 ] ? 'Run' : 'Walk' ) : 'Idle';
-
-      // change animation
-
-      if ( controls.current != play ) {
-
-        const current = actions[ play ];
-        const old = actions[ controls.current as "Idle" | "Walk" | "Run"];
-        controls.current = play;
-
-        setWeight( current, 1.0 );
-        old.fadeOut( fade );
-        current.reset().fadeIn( fade ).play();
-      }
-
-      // move object
-
-      if ( controls.current !== 'Idle' ) {
-
-        // run/walk velocity
-        const velocity = controls.current == 'Run' ? controls.runVelocity : controls.walkVelocity;
-
-        // direction with key
-        ease.set( key[ 1 ], 0, key[ 0 ] ).multiplyScalar( velocity * delta );
-
-        // calculate camera direction
-        const angle = unwrapRad( Math.atan2( ease.x, ease.z ) + 0 );
-        rotate.setFromAxisAngle( up, angle );
-
-        // apply camera angle on ease
-        controls.ease.applyAxisAngle( up, 0 );
-
-        position.add( ease );
-
-        group.position.copy( position );
-        group.quaternion.rotateTowards( rotate, controls.rotateSpeed );
-
-        followGroup.position.copy( position );
-      }
-
-      if ( mixer ) mixer.update( delta );
-
-    }
-
-    function unwrapRad( r : number ) {
-
-      return Math.atan2( Math.sin( r ), Math.cos( r ) );
-
-    }
-
-    function setWeight( action:THREE.AnimationAction, weight: number ) {
-
-      action.enabled = true;
-      action.setEffectiveTimeScale( 1 );
-      action.setEffectiveWeight( weight );
-
-    }
-
     function onKeyDown( event: KeyboardEvent ) {
 
-      const key = controls.key;
       switch ( event.code ) {
 
-        case 'ArrowUp': case 'KeyW': case 'KeyZ': key[ 0 ] = - 1; break;
-        case 'ArrowDown': case 'KeyS': key[ 0 ] = 1; break;
-        case 'ArrowLeft': case 'KeyA': case 'KeyQ': key[ 1 ] = - 1; break;
-        case 'ArrowRight': case 'KeyD': key[ 1 ] = 1; break;
-        case 'ShiftLeft' : case 'ShiftRight' : key[ 2 ] = 1; break;
+        case 'KeyW': fwdPressed = true; break;
+        case 'KeyS': bkdPressed = true; break;
+        case 'KeyD': rgtPressed = true; break;
+        case 'KeyA': lftPressed = true; break;
+        case 'Space':
+          if ( playerIsOnGround ) {
+
+            playerVelocity.y = 10.0;
+            playerIsOnGround = false;
+
+          }
+
+          break;
 
       }
       controlsKeyDown(event);
 
     }
 
-    function onKeyUp( event: KeyboardEvent ) {
-
-      const key = controls.key;
+    function onKeyUp(event: KeyboardEvent){
       switch ( event.code ) {
 
-        case 'ArrowUp': case 'KeyW': case 'KeyZ': key[ 0 ] = key[ 0 ] < 0 ? 0 : key[ 0 ]; break;
-        case 'ArrowDown': case 'KeyS': key[ 0 ] = key[ 0 ] > 0 ? 0 : key[ 0 ]; break;
-        case 'ArrowLeft': case 'KeyA': case 'KeyQ': key[ 1 ] = key[ 1 ] < 0 ? 0 : key[ 1 ]; break;
-        case 'ArrowRight': case 'KeyD': key[ 1 ] = key[ 1 ] > 0 ? 0 : key[ 1 ]; break;
-        case 'ShiftLeft' : case 'ShiftRight' : key[ 2 ] = 0; break;
+        case 'KeyW': fwdPressed = false; break;
+        case 'KeyS': bkdPressed = false; break;
+        case 'KeyD': rgtPressed = false; break;
+        case 'KeyA': lftPressed = false; break;
 
-      }
-
+		  }
     }
 
     function addPlane(){
@@ -432,7 +533,7 @@ class EditorObject{
     }
 
     function addCube(){
-      const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: 0xaaaaaa}))
+      const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1, 10, 10, 10), new THREE.MeshBasicMaterial({color: 0xaaaaaa}))
       environmentMeshes.add(p)
       transformControls.attach( p );
 
@@ -556,7 +657,6 @@ class EditorObject{
       } );
 
       const loader = new THREE.FileLoader( manager );
-      debugger
       loader.load( '/export/index.html', function ( content ) {
 
         content = (content as string).replace( '<!-- title -->', title );
@@ -670,7 +770,7 @@ class EditorObject{
       collider.material.wireframe = true;
       collider.material.opacity = 0.5;
       collider.material.transparent = true;
-
+      collider.layers.set(2);
       scene.add(collider);
     }
 

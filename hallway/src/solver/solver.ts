@@ -455,7 +455,6 @@ export class Solver{
     }
 
     private static axisVector(axis: Axis): THREE.Vector3 {
-        debugger
         switch (axis) {
         case Axis.NegativeX:
             return new THREE.Vector3(-1, 0, 0)
