@@ -38,7 +38,7 @@ export class PerspectiveLine{
         this.perspectiveLineGroup.addChild(this.pointBCircle.getCircle());
         this.line = new Graphics();
         //console.log(this.pointACircle.getCircle().position.x)
-        this.line.moveTo(this.pointACircle.getCircle().position.x, this.pointACircle.getCircle().position.y).lineTo(this.pointBCircle.getCircle().position.x, this.pointBCircle.getCircle().position.y).stroke({width:30, color:color});;
+        this.line.moveTo(this.pointACircle.getCircle().position.x, this.pointACircle.getCircle().position.y).lineTo(this.pointBCircle.getCircle().position.x, this.pointBCircle.getCircle().position.y).stroke({width:6, color:color});;
         this.perspectiveLineGroup.addChild(this.line);
         this.lineArray = [this.pointACirclePosition, this.pointBCirclePosition];
         this.parent = pairParent;
@@ -46,7 +46,7 @@ export class PerspectiveLine{
 
     redrawLine(){
         this.line.clear(); 
-        this.line.moveTo(this.pointACircleGraphic.position.x, this.pointACircleGraphic.position.y).lineTo(this.pointBCircle.getCircle().position.x, this.pointBCircle.getCircle().position.y).stroke({width:30, color:this.color});;
+        this.line.moveTo(this.pointACircleGraphic.position.x, this.pointACircleGraphic.position.y).lineTo(this.pointBCircle.getCircle().position.x, this.pointBCircle.getCircle().position.y).stroke({width:6, color:this.color});;
         
         //update the threejs vectors which will be passed to the solver
         this.pointACirclePosition.x = this.pointACircleGraphic.position.x;

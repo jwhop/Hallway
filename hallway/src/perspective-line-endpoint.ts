@@ -7,7 +7,7 @@ export class PerspectiveLineEndpoint{
     private perspectiveLineParent: PerspectiveLine;
 
     constructor(line : PerspectiveLine, color: string){
-        this.Circle = new Graphics().circle(0, 0, 30).fill(color);
+        this.Circle = new Graphics().circle(0, 0, 6).fill(color);
         this.Circle.position.set(Math.random() * 200, 100);
         this.Circle.eventMode = 'static';
         this.Circle.on('pointerdown', (event) => {this.isMouseDown = true;});

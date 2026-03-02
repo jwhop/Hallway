@@ -10,11 +10,28 @@
 
 <body>
     <div class="outsideWrapper" id="outerContainer">
+        <div class="draggable" id="outerContainerheader">Image Window</div>
         <div class="insideWrapper" id="innerContainer">
             <input type='file' id="fileSelect"/> 
             <script type="module" src="/src/main.ts"></script>
         </div>
     </div>
-    <button id="addGuy">Add Guy</button>
+    <div class="buttonMenu" id="buttonMenu" style="left:1000px">
+        <div class="draggable" id="buttonMenuheader">Image Window</div>
+        <button id="addGuy">Add Guy</button>
+        <button id="export">Export</button>
+        <button id="addPlane">Add Plane</button>
+        <button id="addCube">Add Cube</button>
+        <button id="addSphere">Add Sphere</button>
+    </div>
+    <div class="objectPropertiesMenu" id="objectPropertiesMenu" style="left:1200px">
+        <div class="draggable" id="objectPropertiesMenuheader">Object Settings</div>
+        <button id="toggleWireframe"> Toggle Wireframe/Shaded </button>
+        <button id="snapToGround"> Snap to Ground </button>
+        <button id="removeObject"> removeObject </button>
+        <button id="readyWalkableGeometry"> ready walkable geometry </button>
+
+    </div>
+
 </body>
 </html>
