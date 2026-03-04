@@ -2,11 +2,42 @@ body {
     background-color: ivory;
 }
 
+.monitorImage{
+    position:absolute;
+    height:1000px;
+    left: -200px;
+    top: -50px;
+    pointer-events: none;
+}
+
 .outsideWrapper {
-    height: 800px;
-    width: 800px;
+    height: 600px;
+    width: 750px;
+    left: 160px;
+    top: 70px;
+    background-color: #111111;
+
     border:10px solid blue;
     position: absolute;
+    z-index: -1;
+}
+
+.windowHeader{
+    padding: 10px;
+    z-index: 10;
+    background-color: #2196F3;
+    color: #fff;
+    display: flex;
+}
+
+.outsideWrapper button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
 }
 
 .insideWrapper {
@@ -50,4 +81,12 @@ body {
     width: 100px;
     border:10px solid blue;
     position: absolute;
+}
+
+.imagesMenu {
+    height: 200px;
+    width: 100px;
+    border:10px solid blue;
+    position: absolute;
+    display: flex;
 }

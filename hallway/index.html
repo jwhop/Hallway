@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./main.css">
-    <title>PixiJS - Template</title>
+    <title>Pavement</title>
 </head>
 
 <body>
+    <img src="./src/monitor.png" class="monitorImage">
     <div class="outsideWrapper" id="outerContainer">
-        <div class="draggable" id="outerContainerheader">Image Window</div>
+        <div class="windowHeader">
+            <button> + </button>
+        </div>
         <div class="insideWrapper" id="innerContainer">
-            <input type='file' id="fileSelect"/> 
-            <script type="module" src="/src/main.ts"></script>
         </div>
     </div>
     <div class="buttonMenu" id="buttonMenu" style="left:1000px">
@@ -30,8 +30,12 @@
         <button id="snapToGround"> Snap to Ground </button>
         <button id="removeObject"> removeObject </button>
         <button id="readyWalkableGeometry"> ready walkable geometry </button>
+    </div>
+    <div class="imagesMenu" id="imagesMenu" style="left:1600px">
+        <div class="draggable" id="imagesMenuheader">Images</div>
 
     </div>
+    <script type="module" src="/src/main.ts"></script>
 
 </body>
 </html>

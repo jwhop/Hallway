@@ -10,34 +10,119 @@ import { TransformControls } from 'three/examples/jsm/Addons.js';
 import { MeshBVH, StaticGeometryGenerator } from 'three-mesh-bvh';
 import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js';
 
-class EditorObject{
-  element: HTMLElement;
-  editor: Editor;
+class SceneData{
+  scene: THREE.Scene;
+  camera: THREE.Camera;
+  name!: string;
+  introText!: string;
+  imgUrl: string;
 
-  constructor(el : HTMLElement, ed: Editor){
-    this.element = el;
-    this.editor = ed;
+  constructor(s: THREE.Scene, c: THREE.Camera, imgSrc: string){
+    this.scene = s;
+    this.camera = c;
+    this.imgUrl = imgSrc;
   }
 }
 
-(async () => {
-  const fileSelect = new EditorObject(document.getElementById("fileSelect") as HTMLInputElement, this);
-  fileSelect.element.addEventListener('change', function() {
-    const wrapper = document.getElementById('innerContainer') as HTMLElement;
-    for (const file of (this as HTMLInputElement).files!) {
-      const img = document.createElement("img");
-      img.id = "myImg";
-      img.src = URL.createObjectURL(file);
-      img.onload = function(){
-        img.height = Math.min(img.height, 800);
-        wrapper.appendChild(img);
-        initializeApp();
-      };
+class GameData{
+  scenes: SceneData[];
+
+  constructor(){
+    this.scenes = [];
+  }
+}
+
+function convertStringToGameData(s : string) : GameData{
+  return new GameData();
+}
+
+(async () => {  
+  /////////////////////////////////////////////
+  // Initialization 
+  /////////////////////////////////////////////
+
+  // check local storage for game data 
+  const currentGameData = localStorage.getItem("currentGameData") == null? new GameData() : convertStringToGameData(localStorage.getItem("currentGameData")!);
+
+  const imagesMenu = document.getElementById("imagesMenu");
+
+  const dropZone = document.getElementById("innerContainer");
+
+  let dragged : HTMLImageElement | null = null;
+
+  dropZone!.addEventListener("dragover", (event) => {
+    // prevent default to allow drop
+    event.preventDefault();
+  });
+
+  dropZone!.addEventListener("drop", (event) => {
+    // prevent default action (open as a link for some elements)
+    event.preventDefault();
+    // move dragged element to the selected drop target
+    if (event.target.className === "insideWrapper") {
+      newScene(dragged!.src);
     }
-  })
+  });
+
+
+////////////////////////////////////////////////////
+// Hacky solution for GDC: iterate through urls and load images til one throws an error
+/////////////////////////////////////////////////////
+  function loadImage(num, cb){
+    var img = document.createElement("img");
+    const reader = new FileReader();
+    
+    reader.onload = function(e){
+      console.log("loaded reader");
+    }
+    
+    img.onload = function(){
+        img.height = 100;
+        img.draggable = true;
+        img.addEventListener("dragstart", (event) => {
+          console.log("40")
+          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
+          dragged = event.target;   
+        })
+        imagesMenu?.append(img);
+        console.log('loaded image');
+        cb();
+    };
+
+    img.onerror = function(err){
+        console.log('error:', err);
+        cb(err);
+    };
+
+    console.log('attempting to load image:' + num);
+    img.src = "http://file.garden/aacEYOWK43Nd2sJg/test" + num.toString() + ".jpg";
+  };
+
+  function loadSequential(first){
+    loadImage(first, function(err){
+        if(!err) { loadSequential(first + 1); }
+    });  
+  }
   
-  
-  
+  loadSequential(0);
+
+//////////////////////////////////////////////////////
+// Initialize Editor
+//////////////////////////////////////////////////////
+
+  function newScene(imgUrl: string){
+    const wrapper = document.getElementById('innerContainer') as HTMLElement;
+    const img = document.createElement("img");
+    img.id = "myImg";
+    img.src = imgUrl;
+    img.onload = function(){
+      img.height = 510;
+
+      wrapper.appendChild(img);
+      initializeApp();
+    }
+  }
+    
   async function initializeApp(){
     
     const img = document.getElementById('myImg');
@@ -48,9 +133,6 @@ class EditorObject{
     // Initialize window dimensions
     let WIDTH = img?.offsetWidth as number;
     let HEIGHT = img?.offsetHeight as number;
-    outerWrapper!.style.width = (img?.offsetLeft as number).toString() + "px";
-    outerWrapper!.style.height = (img?.offsetTop as number).toString() + "px";
-    
     
     // === PIXI.JS SETUP ===
     // Create a new application
@@ -68,7 +150,7 @@ class EditorObject{
         clearBeforeRender: false      // so that we can render three.js too
     });
 
-
+    
     // Get width and height of image, need to pass to solver
     const imgData = new Image(WIDTH, HEIGHT);
 
@@ -90,9 +172,11 @@ class EditorObject{
 
     // Add the canvas to your webpage
     innerWrapper?.appendChild(app.canvas);
-
+    const leftPoint = (img?.offsetLeft as number) + WIDTH/2
+    img.style.left = leftPoint.toString() + "px";
+    (img as HTMLElement).style.position = "absolute";
     app.canvas.classList.add("coveringCanvas");
-    app.canvas.style.left = (img?.offsetLeft as number).toString() + "px";
+    app.canvas.style.left = leftPoint.toString() + "px";
     app.canvas.style.top = (img?.offsetTop as number).toString() + "px";
     
     
@@ -259,7 +343,7 @@ class EditorObject{
         new THREE.MeshStandardMaterial()
     );
 
-    player.geometry.translate( 0, 0.0, 0 );
+    player.geometry.translate( 0, 0.5, 0 );
     player.position.set(0,0.25,0);
     player.capsuleInfo = {
       radius: 0.5,
@@ -291,8 +375,8 @@ class EditorObject{
         if(!init){
           app.stage.visible = false;
           init = true;
-          collider.material.visible = false;
-          scene.remove(environmentMeshes);
+          //collider.material.visible = false;
+          //scene.remove(environmentMeshes);
         }
       }
       if ( playerIsOnGround ) {
@@ -777,9 +861,9 @@ class EditorObject{
   }
 })()
 
-dragElement(document.getElementById("outerContainer"));
 dragElement(document.getElementById("buttonMenu"));
 dragElement(document.getElementById("objectPropertiesMenu"));
+dragElement(document.getElementById("imagesMenu"));
 
 function dragElement(elmnt) {
   var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
