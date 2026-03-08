@@ -8,16 +8,14 @@ body {
     left: -200px;
     top: -50px;
     pointer-events: none;
+    z-index: -1;
 }
 
-.outsideWrapper {
-    height: 600px;
-    width: 750px;
-    left: 160px;
-    top: 70px;
-    background-color: #111111;
-
-    border:10px solid blue;
+#outsideWrapper {
+    height: 675px;
+    width: 775px;
+    left: 205px;
+    top: 150px;
     position: absolute;
     z-index: -1;
 }
@@ -58,7 +56,6 @@ body {
     width:100%;
     height:100%;
     position:absolute;
-    background-color: rgba(255, 0, 0, .1);
 }
 
 .draggable {
@@ -69,24 +66,38 @@ body {
   color: #fff;
 }
 
-.buttonMenu {
-    height: 200px;
+#sceneSettingsMenu {
+    height: 400px;
     width: 100px;
-    border:10px solid blue;
     position: absolute;
 }
 
-.objectPropertiesMenu {
-    height: 200px;
-    width: 100px;
-    border:10px solid blue;
+#objectPropertiesMenu {
     position: absolute;
 }
 
-.imagesMenu {
-    height: 200px;
-    width: 100px;
-    border:10px solid blue;
+#imagesMenu {
     position: absolute;
-    display: flex;
+}
+
+#objectsMenu {
+    position: absolute;
+}
+
+
+body {
+  background-image: url('./public/assets/sky.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.renderedImage {
+    position:absolute;
+    cursor:pointer;
+
+}
+
+.renderedImage:hover {
+    margin-top: -50px;
 }
