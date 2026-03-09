@@ -14,9 +14,9 @@ export class PerspectiveLinePair{
     private axis : Axis;
     private canvas: HTMLCanvasElement;
 
-    constructor(color: string, image : Image | null, a : Axis, c: HTMLCanvasElement){
-        this.line1 = new PerspectiveLine(color, this, c);
-        this.line2 = new PerspectiveLine(color, this, c);
+    constructor(color: string, image : Image | null, a : Axis, c: HTMLCanvasElement, p0: THREE.Vector2, p1: THREE.Vector2, p2:THREE.Vector2, p3:THREE.Vector2){
+        this.line1 = new PerspectiveLine(color, this, c, p0, p1);
+        this.line2 = new PerspectiveLine(color, this, c, p2, p3);
         this.image = image;
         this.manager = null;
         this.axis = a;

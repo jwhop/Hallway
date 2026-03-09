@@ -1,4 +1,4 @@
-
+import * as THREE from 'three';
 /**
  * fSpy
  * Copyright (c) 2020 - Per Gantelius
@@ -61,6 +61,7 @@ export interface CalibrationSettingsBase {
   cameraData: CameraData
   firstVanishingPointAxis: Axis
   secondVanishingPointAxis: Axis
+  origin: THREE.Vector2
 }
 
 export interface CalibrationSettings1VP {

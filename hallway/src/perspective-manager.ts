@@ -4,21 +4,23 @@ import { Solver } from "./solver/solver";
 import { CalibrationSettingsBase, CalibrationSettings2VP, ReferenceDistanceUnit, Axis, PrincipalPointMode2VP } from "./solver/calibration-settings";
 import * as THREE from 'three';
 import { SceneData } from "./main";
+import { PerspectiveOriginPoint } from "./origin-point";
 
 export class PerspectiveManager{
     private xPair : PerspectiveLinePair;
     private zPair : PerspectiveLinePair;
+    private origin: PerspectiveOriginPoint;
     private calibrationSettingsBase : CalibrationSettingsBase;
     private calibrationSettings2VP : CalibrationSettings2VP;
     private image : Image | null;
     private camera! : THREE.PerspectiveCamera;
     private currentSceneData!: SceneData | null;
     
-    constructor(x : PerspectiveLinePair, z: PerspectiveLinePair, i : Image | null){
+    constructor(x : PerspectiveLinePair, z: PerspectiveLinePair, o: PerspectiveOriginPoint, i : Image | null){
         this.xPair = x;
         this.zPair = z;
         this.image = i;
-        
+        this.origin = o;
         this.calibrationSettings2VP = {
             principalPointMode: PrincipalPointMode2VP.Default,
             quadModeEnabled: false
@@ -34,7 +36,8 @@ export class PerspectiveManager{
                 customSensorHeight: 24
             },
             firstVanishingPointAxis: Axis.NegativeX,
-            secondVanishingPointAxis: Axis.PositiveZ
+            secondVanishingPointAxis: Axis.PositiveZ,
+            origin: this.origin.getOrigin()
         }
     }
 
@@ -70,6 +73,7 @@ export class PerspectiveManager{
         }
         this.calibrationSettingsBase.firstVanishingPointAxis = this.xPair.getAxis();
         this.calibrationSettingsBase.secondVanishingPointAxis = this.zPair.getAxis();
+        this.calibrationSettingsBase.origin = this.origin.getOrigin();
         let test = Solver.solve2VP(this.calibrationSettingsBase, this.calibrationSettings2VP, this.xPair, this.zPair, this.image);
         if ( test.errors.length == 0){
             this.camera.matrixWorldAutoUpdate = false;

@@ -397,12 +397,14 @@ export class Solver{
     ): void {
         // The 3D origin in image plane coordinates
         let origin = CoordinatesUtil.convert(
-            new THREE.Vector2(0.502536594761171, 0.96081762673040585),
-            ImageCoordinateFrame.Relative,
+            //new THREE.Vector2(0.502536594761171, 0.96081762673040585)
+            settings.origin,
+            ImageCoordinateFrame.Absolute,
             ImageCoordinateFrame.ImagePlane,
             imageWidth,
             imageHeight
         )
+
 
         let k = Math.tan(0.5 * cameraParameters.horizontalFieldOfView)
         let origin3D = new THREE.Vector3(

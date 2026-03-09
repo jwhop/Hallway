@@ -22,15 +22,15 @@ export class PerspectiveLine{
     private parent: PerspectiveLinePair;
     private canvas: HTMLCanvasElement;
 
-    constructor(color : string, pairParent: PerspectiveLinePair, c: HTMLCanvasElement){
+    constructor(color : string, pairParent: PerspectiveLinePair, c: HTMLCanvasElement, p0 : THREE.Vector2, p1 : THREE.Vector2){
         this.perspectiveLineGroup = new Container();
         this.color = color;
 
-        this.pointACircle = new PerspectiveLineEndpoint(this, this.color, c);
+        this.pointACircle = new PerspectiveLineEndpoint(this, this.color, c, p0);
         this.pointACircleGraphic = this.pointACircle.getCircle();
         this.pointACirclePosition = new THREE.Vector2(0,0);
 
-        this.pointBCircle = new PerspectiveLineEndpoint(this, this.color, c);
+        this.pointBCircle = new PerspectiveLineEndpoint(this, this.color, c, p1);
         this.pointBCircleGraphic = this.pointBCircle.getCircle();
         this.pointBCirclePosition = new THREE.Vector2(0,0);
         

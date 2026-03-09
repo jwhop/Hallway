@@ -10,6 +10,7 @@ import { TransformControls } from 'three/examples/jsm/Addons.js';
 import { MeshBVH, StaticGeometryGenerator } from 'three-mesh-bvh';
 import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js';
 import { Axis } from './solver/calibration-settings';
+import { PerspectiveOriginPoint } from './origin-point';
 
 export class SceneData{
   scene: THREE.Scene;
@@ -34,9 +35,9 @@ export class SceneData{
     this.id = id;
     this.imgData = imgData;
     this.axes1Type = Axis.PositiveX;
-    this.axes1LinePoints = [new THREE.Vector2(0,0), new THREE.Vector2(0,0), new THREE.Vector2(0,0), new THREE.Vector2(0,0)];
+    this.axes1LinePoints = [new THREE.Vector2(200,200), new THREE.Vector2(300,300), new THREE.Vector2(300,200), new THREE.Vector2(400,300)];
     this.axes2Type = Axis.PositiveZ;
-    this.axes2LinePoints = [new THREE.Vector2(0,0), new THREE.Vector2(0,0), new THREE.Vector2(0,0), new THREE.Vector2(0,0)];
+    this.axes2LinePoints = [new THREE.Vector2(200,400), new THREE.Vector2(300,500), new THREE.Vector2(300,400), new THREE.Vector2(400,500)];
   }
 
   setName(s : string){
@@ -70,8 +71,7 @@ async function convertStringToGameData(s : string) : Promise<GameData>{
       console.log(g);
       scene.camera = loader.parse(scene.camera);
       scene.scene = loader.parse(scene.scene);
-      scene.scene.children.find(c => c.name == "axesHelper")?.removeFromParent();
-      scene.scene.children.find(c => c.name == "gizmo")?.removeFromParent();
+
       // Create new scene name
       newScene.innerHTML = scene.name;
       document.getElementById("sceneSelection")?.appendChild(newScene);
@@ -155,7 +155,19 @@ function stringToAxis(s : string) : Axis {
     reader.onload = function(e){
       console.log("loaded reader");
     }
-    
+    document.getElementById("i1")?.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
+          dragged = (event.target as HTMLImageElement);   
+    });
+
+    document.getElementById("i2")?.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
+          dragged = (event.target as HTMLImageElement);   
+    });
+    document.getElementById("i3")?.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
+          dragged = (event.target as HTMLImageElement);   
+    });
     img.onload = function(){
         img.height = 100;
         img.draggable = true;
@@ -194,13 +206,13 @@ function stringToAxis(s : string) : Axis {
   //////////////////////////////////////////////////////
   // pixi.js set up 
   //////////////////////////////////////////////////////
-
+  console.log ("initializing pixijs");
   const app = new Application();
 
   // Initialize with options
   await app.init({
-      width: 0,                 // Canvas width
-      height: 0,               // Canvas height
+      width: 10,                 // Canvas width
+      height: 10,               // Canvas height
       backgroundColor: 0xffffff,    // Background color
       backgroundAlpha: 0,           // Background alpha
       antialias: true,              // Enable antialiasing
@@ -214,13 +226,14 @@ function stringToAxis(s : string) : Axis {
   app.canvas.classList.add("coveringCanvas");
 
   // Create z and x perspective lines
-  const perspectiveLinePairX = new PerspectiveLinePair('red', null, Axis.PositiveX, app.canvas);
-  const perspectiveLinePairZ = new PerspectiveLinePair('blue', null, Axis.PositiveZ, app.canvas);
-
+  const perspectiveLinePairX = new PerspectiveLinePair('red', null, Axis.PositiveX, app.canvas, new THREE.Vector2(200, 200), new THREE.Vector2(300, 300), new THREE.Vector2(300, 200), new THREE.Vector2(400, 300));
+  const perspectiveLinePairZ = new PerspectiveLinePair('blue', null, Axis.NegativeZ, app.canvas, new THREE.Vector2(200, 400), new THREE.Vector2(300, 500), new THREE.Vector2(300, 400), new THREE.Vector2(400, 500));
+  const origin = new PerspectiveOriginPoint(app.canvas, new THREE.Vector2(400, 600));
   // Create perspective manager
-  const perspectiveManager = new PerspectiveManager(perspectiveLinePairX, perspectiveLinePairZ, null);
+  const perspectiveManager = new PerspectiveManager(perspectiveLinePairX, perspectiveLinePairZ, origin, null);
   perspectiveLinePairX.assignManager(perspectiveManager);
   perspectiveLinePairZ.assignManager(perspectiveManager);
+  origin.assignManager(perspectiveManager);
 
   // Add actual shape containers to scene
   app.stage.addChild(perspectiveLinePairX.getLine1Object());
@@ -228,6 +241,7 @@ function stringToAxis(s : string) : Axis {
 
   app.stage.addChild(perspectiveLinePairZ.getLine1Object());
   app.stage.addChild(perspectiveLinePairZ.getLine2Object());
+  app.stage.addChild(origin.getCircle());
 
   app.stage.visible = false;
 
@@ -284,12 +298,15 @@ function stringToAxis(s : string) : Axis {
   let currentCollider: null | THREE.Mesh = null;
   let currentPlayer: null | THREE.Mesh = null;
   let isInPlayMode = false;
+  let isSPawning = false;
 
   let sceneRaycaster = new THREE.Raycaster();
   var Mouse = new THREE.Vector2();
   let isMouseDown = false;
   let isDragging = false;
   let isDraggingDelta = 0;
+  let isLoading = false;
+  let isMouseOverCanvas = false;
   
   document.addEventListener( 'mousedown', function(event){
     isMouseDown = true;
@@ -305,10 +322,13 @@ function stringToAxis(s : string) : Axis {
     }
   })
 
+  app.canvas.addEventListener('mouseenter', () => { isMouseOverCanvas = true; });
+  app.canvas.addEventListener('mouseleave', () => { isMouseOverCanvas = false; });
+
   document.addEventListener( 'click', function( event ) {
     // todo add this somewhere 
     // event.preventDefault();
-    if(currentCamera == null || currentScene == null || isDragging){
+    if(!isMouseOverCanvas || currentCamera == null || currentScene == null || isDragging || isInPlayMode){
       isDragging = false;
       isMouseDown = false;
       isDraggingDelta = 0;
@@ -319,23 +339,26 @@ function stringToAxis(s : string) : Axis {
     sceneRaycaster.layers.set(1);
     sceneRaycaster.setFromCamera( Mouse, currentCamera! );
     var intersects = sceneRaycaster.intersectObjects( currentScene!.children, true );
+    console.log(intersects);
+    debugger
     if(intersects.length > 0 && intersects[0].object.isMesh && transformControls){
+      console.log("ATTACHING");
       transformControls!.attach( intersects[0].object );
 
       const gizmo = transformControls!.getHelper();
       gizmo.name = 'gizmo';
       gizmo.layers.set(1);
-      currentScene!.add( gizmo );
       currentlySelectedObject = intersects[0].object as THREE.Mesh;
-      console.log(currentScene);
       document.getElementById("exitBox").disabled = false;
     }
-    else if(intersects.length == 0){
+    else if(intersects.length == 0 && !isSPawning){
+      console.log("detaching");
       transformControls!.detach();
     }
     isDragging = false;
     isDraggingDelta = 0;
     isMouseDown = false;
+    isSPawning = false;
   });
   // For delta time
   const clock = new THREE.Clock();
@@ -343,8 +366,14 @@ function stringToAxis(s : string) : Axis {
   async function save(){
     if(currentSceneData != null){
       console.log(currentSceneData.scene);
+      const cloneScene = currentSceneData.scene.clone();
+      cloneScene.children.find(c=>c.name == "axesHelper")?.removeFromParent();
+      cloneScene.children.find(c=>c.name == "gizmo")?.removeFromParent();
+      cloneScene.children.find(c=>c.name == "player")?.removeFromParent();
+
       currentSceneData!.cameraString = JSON.stringify(currentSceneData?.camera);
-      currentSceneData!.sceneString = JSON.stringify(currentSceneData?.scene);
+      currentSceneData!.scene = cloneScene;
+      console.log(cloneScene);
       localStorage.setItem("currentGameData", JSON.stringify(currentGameData));
     }
   }
@@ -361,8 +390,8 @@ function stringToAxis(s : string) : Axis {
 
   // Animation loop
   function loop() {
+    if(isLoading) return;
     const delta = clock.getDelta();
-
     
     updatePlayer( delta );
 
@@ -392,12 +421,12 @@ function stringToAxis(s : string) : Axis {
   sceneSelectionSelectElement.addEventListener("change", sceneSelectionChanged);
   //document.getElementById("addGuy")?.addEventListener("click", loadModel);
   //document.getElementById("export")?.addEventListener("click", exportTest);
-  document.getElementById("addPlane")?.addEventListener("click", addPlane);
-  document.getElementById("addCube")?.addEventListener("click", addCube);
-  document.getElementById("addSphere")?.addEventListener("click", addSphere);
-  document.getElementById("toggleWireframe")?.addEventListener("click", toggleWireframe);
-  document.getElementById("snapToGround")?.addEventListener("click", snapToGround);
-  document.getElementById("removeObject")?.addEventListener("click", removeSelectedObject);
+  document.getElementById("addPlane")?.addEventListener("mousedown", addPlane);
+  document.getElementById("addCube")?.addEventListener("mousedown", addCube);
+  document.getElementById("addSphere")?.addEventListener("mousedown", addSphere);
+  document.getElementById("toggleWireframe")?.addEventListener("mousedown", toggleWireframe);
+  document.getElementById("snapToGround")?.addEventListener("mousedown", snapToGround);
+  document.getElementById("removeObject")?.addEventListener("mousedown", removeSelectedObject);
   document.getElementById("readyWalkableGeometry")?.addEventListener("click", readyWalkableGeometry);
   document.addEventListener( 'keydown', onKeyDown );
   document.addEventListener( 'keyup', onKeyUp );
@@ -451,7 +480,12 @@ function stringToAxis(s : string) : Axis {
       resetSceneSettingsMenu(sceneName);
       const scene = currentGameData.scenes.find(s=>s.name == sceneName);
       console.log("about to populate scene");
-      if(scene) populateScene(scene, true);
+      if(scene){
+        console.log(scene);
+        isLoading = true;
+        await populateScene(scene, true);
+        isLoading = false;
+      } 
     }
   }
 
@@ -465,25 +499,29 @@ function stringToAxis(s : string) : Axis {
     sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML = (sceneSettingsNameInputElement as HTMLInputElement).value;
   }
   
-  function addPlane(){
+  function addPlane(e: Event){
     if(isInPlayMode) return;
     if(currentEnvironmentMeshes == null) return;
+    isSPawning = true;
     const p = new THREE.Mesh(new THREE.PlaneGeometry(1,1,25, 25), new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(Math.random(), 0.4, 0.75), wireframe: true}))
     p.rotateX(-Math.PI / 2);
     currentEnvironmentMeshes!.add(p)
     transformControls!.attach( p );
+    p.material.side = THREE.DoubleSide;
 
     const gizmo = transformControls!.getHelper();
     gizmo.name = 'gizmo';
     currentScene!.add( gizmo );
     currentlySelectedObject = p;
     p.layers.set(1);
-    document.getElementById("exitBox").disabled = true;
+          console.log("ATTACHING");
+    document.getElementById("exitBox")!.disabled = true;
   }
 
   function addCube(){
     if(isInPlayMode) return;
     if(currentEnvironmentMeshes == null) return;
+    isSPawning = true;
     const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1, 10, 10, 10), new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(Math.random(), 0.4, 0.75), wireframe: false, transparent: true, opacity: 0.9}))
     currentEnvironmentMeshes!.add(p)
     transformControls!.attach( p );
@@ -493,12 +531,14 @@ function stringToAxis(s : string) : Axis {
     currentlySelectedObject = p;
     snapToGround();
     p.layers.set(1);
+          console.log("ATTACHING");
     document.getElementById("exitBox").disabled = false;
   }
 
   function addSphere(){
     if(isInPlayMode) return;
     if(currentEnvironmentMeshes == null) return;
+    isSPawning = true;
     const p = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 10 ), new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(Math.random(), 0.4, 0.75), wireframe: false, transparent: true, opacity: 0.9}))
     currentEnvironmentMeshes!.add(p)
     transformControls!.attach( p );
@@ -508,6 +548,7 @@ function stringToAxis(s : string) : Axis {
     currentlySelectedObject = p;
     snapToGround();
     p.layers.set(1);
+          console.log("ATTACHING");
     document.getElementById("exitBox").disabled = false;
 
   }
@@ -767,7 +808,7 @@ function stringToAxis(s : string) : Axis {
 
   function newScene(imgUrl: string){
     if(isInPlayMode) return;
-
+    isLoading = true;
 
     const wrapper = document.getElementById('innerContainer') as HTMLElement;
     const img = (document.getElementById('myImg') as HTMLImageElement); 
@@ -779,7 +820,7 @@ function stringToAxis(s : string) : Axis {
     img.width = 0 ;
     debugger
     img!.style.visibility = "visible";
-    img!.onload = function(){
+    img!.onload = async function(){
       debugger
       // Hide blank scene text
       (document.getElementById("blankSceneText") as HTMLElement).style.visibility = "hidden";
@@ -838,11 +879,11 @@ function stringToAxis(s : string) : Axis {
         new THREE.MeshStandardMaterial()
       );
       newPlayer.name = "player";
-      newPlayer.geometry.translate( 0, 0.5, 0 );
-      newPlayer.position.set(0,0.25,0);
+      //newPlayer.geometry.translate( 0, 0.5, 0 );
+      newPlayer.position.set(0,0.0,0);
       newPlayer.userData.capsuleInfo = {
         radius: 0.5,
-        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  0.0, 0.0 ) )
+        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  -1.0, 0.0 ) )
       };
 
       // New camera, new scene, new scene data
@@ -865,11 +906,12 @@ function stringToAxis(s : string) : Axis {
       const newSceneData = new SceneData(newScene, newCamera, imgUrl, currentSceneID, imgData);
       newSceneData.setName(sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML)
       currentGameData.scenes.push(newSceneData);
-      populateScene(newSceneData);
+      await populateScene(newSceneData);
+      isLoading = false;
     }
   }
 
-  function populateScene(sceneData: SceneData, populateImg = false){
+  async function populateScene(sceneData: SceneData, populateImg = false){
     // html stuff 
     currentSceneData = sceneData;
     currentSceneID = currentSceneData.id;
@@ -889,7 +931,6 @@ function stringToAxis(s : string) : Axis {
         myImg!.width = myImg.height * (myImg.naturalWidth/myImg.naturalHeight);
       }
       else{
-        console.log("here");
         myImg!.width = 750;
         myImg!.height = myImg.width * (myImg.naturalHeight / myImg.naturalWidth)
       }
@@ -915,29 +956,43 @@ function stringToAxis(s : string) : Axis {
 
         app.stage.visible = true;
         threeRenderer.setSize(WIDTH!, HEIGHT!);
-
-        if(currentScene!.children.find(c => c.name == "axesHelper") == null){
-          const axesHelper = new THREE.AxesHelper( 50 );
-          axesHelper.name ="axesHelper";
-          currentScene!.add( axesHelper );
-        }
       }
     }
 
+    if(currentScene && currentScene.children.find(c => c.name == "axesHelper") == null){
+      const axesHelper = new THREE.AxesHelper( 50 );
+      axesHelper.name ="axesHelper";
+      currentScene!.add( axesHelper );
+    }
+        
     // three.js stuff
     currentCamera = currentSceneData.camera;
     currentScene = currentSceneData.scene;
     currentPlayer = currentScene.children.find(c=>c.name=="player")!;
+    
+    if(!currentPlayer){
+      let newPlayer = new THREE.Mesh(
+        new RoundedBoxGeometry( 1.0, 2.0, 1.0, 10, 0.5 ),
+        new THREE.MeshStandardMaterial()
+      );
+      newPlayer.name = "player";
+      //newPlayer.geometry.translate( 0, 0.5, 0 );
+      newPlayer.position.set(0,0.0,0);
+      newPlayer.userData.capsuleInfo = {
+        radius: 0.5,
+        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  -1.0, 0.0 ) )
+      };
+      currentScene.add(newPlayer);
+      currentPlayer = newPlayer;
+    }
+
+    currentPlayer?.position.set(0,isInPlayMode? 1 : 0,0);
     currentEnvironmentMeshes = currentScene.children.find(c => c.name == "environmentMeshes") as THREE.Group;
     currentExitMeshes = currentScene.children.find(c => c.name == "exitMeshes") as THREE.Group;
     currentlySelectedObject = null;
 
-    if(transformControls == null) {
-        transformControls = new TransformControls(currentCamera, threeRenderer.domElement);
-    }
-    else{
-      transformControls.camera = currentCamera;
-    }
+    transformControls = new TransformControls(currentCamera, threeRenderer.domElement);
+    
 
     // Pixi.js stuff
     perspectiveManager.assignCamera(currentCamera as THREE.PerspectiveCamera);
@@ -949,28 +1004,104 @@ function stringToAxis(s : string) : Axis {
     }
     perspectiveManager.assignSceneData(currentSceneData);
     console.log("done here");
+    if(isInPlayMode){
+      isInPlayMode = false;
+      readySceneGeometryforPlay();
+      readyCurrentSceneForPlay();
+
+    }
   }
 
-  function playScene(){
+  async function playScene(){
     if(currentCamera == null || currentScene == null) return;
 
     const button = document.getElementById("playButton");
 
     if(button!.innerHTML == "PLAY"){
+      await save();
+
+      readySceneGeometryforPlay();
     
-      // Remove existing collider if it exists
+      readyCurrentSceneForPlay();
+
+      document.getElementById("playButton")!.innerHTML = "STOP";
+      
+      setTimeout(() => {
+        isInPlayMode = true;
+      }, 1000);
+      
+    }
+    else{
+      isInPlayMode = false;
       if(currentScene?.children.find(c => c.name == "collider") != null){
         currentScene?.children.find(c => c.name == "collider")!.removeFromParent();
       }
-      
-      // Make current environment meshes invisible
+      if(currentEnvironmentMeshes?.children.find(c => c.name == "newCubes") != undefined){
+        currentEnvironmentMeshes?.children.find(c => c.name == "newCubes")!.removeFromParent();
+      }
+
+      // Make current environment meshes visible
       currentEnvironmentMeshes?.traverse((mesh) => {
+        console.log(mesh)
         if(mesh.isMesh){
-          mesh.material.visible = false;
+          mesh.material.visible = true;
+        }
+      });
+      currentExitMeshes?.traverse((mesh) => {
+        console.log(mesh)
+        if(mesh.isMesh){
+          mesh.material.visible = true;
         }
       });
 
-      currentExitMeshes?.traverse((mesh) => {
+      if(currentPlayer){
+        //currentPlayer!.geometry.translate( 0, 0.5, 0 );
+        currentPlayer!.position.set(0,2.0,0);
+        currentPlayer?.geometry.computeBoundingSphere();
+      }
+      
+      document.getElementById("playButton")!.innerHTML = "PLAY";
+    }
+
+  }
+  
+  async function readySceneGeometryforPlay(){
+      const scene = currentScene;
+      isInPlayMode = false;
+      // Remove existing collider if it exists
+      if(scene?.children.find(c => c.name == "collider") != null){
+        scene?.children.find(c => c.name == "collider")!.removeFromParent();
+      }
+      
+      // Make current environment meshes invisible
+      const _newCubesToAdd = new THREE.Group();
+      _newCubesToAdd.name = "newCubes";
+      const _environmentMeshes = scene!.children.find(c=>c.name=="environmentMeshes");
+      if(_environmentMeshes?.children.find(c=>c.name == "newCubes")){
+        _environmentMeshes?.children.find(c=>c.name == "newCubes")?.removeFromParent();
+      }
+
+      _environmentMeshes?.traverse((mesh) => {
+        if(mesh.isMesh){
+          //mesh.material.visible = false;
+          mesh.updateMatrixWorld();
+          if(mesh.geometry.type == "PlaneGeometry"){
+            const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1, 10, 10, 10), new THREE.MeshBasicMaterial({visible:false, color:0xff0000}));
+            cube.scale.set(mesh.scale.x, mesh.scale.y, mesh.scale.z);
+            cube.position.set(mesh.position.x, 0, mesh.position.z);
+            const bbox = new THREE.Box3().setFromObject(cube as THREE.Mesh);
+            const size = new THREE.Vector3;
+            cube.position.y = 0 - bbox.getSize(size).y /2;
+            cube.updateMatrixWorld();
+            _newCubesToAdd.add(cube);
+          }
+        }
+      });
+      
+      _environmentMeshes?.add(_newCubesToAdd);
+      const _exitMeshes = scene!.children.find(c=>c.name=="exitMeshes");
+
+      _exitMeshes?.traverse((mesh) => {
         if(mesh.isMesh){
           mesh.material.visible = false;
           mesh.geometry.computeBoundingSphere();
@@ -978,7 +1109,7 @@ function stringToAxis(s : string) : Axis {
       });
 
       // Generate collider
-      const staticGenerator = new StaticGeometryGenerator( currentEnvironmentMeshes! );
+      const staticGenerator = new StaticGeometryGenerator( currentEnvironmentMeshes );
       staticGenerator.attributes = [ 'position' ];
 
       const mergedGeometry = staticGenerator.generate();
@@ -987,43 +1118,31 @@ function stringToAxis(s : string) : Axis {
       currentCollider = new THREE.Mesh( mergedGeometry );
       currentCollider.name = "collider";
       currentCollider.material.wireframe = true;
-      currentCollider.material.opacity = 0.0;
-      currentCollider.material.transparent = true;
+      currentCollider.material.visible = false;
       currentCollider.layers.set(2);
       currentScene!.add(currentCollider);
-
-      document.getElementById("playButton")!.innerHTML = "STOP";
-      setTimeout(() => {
-        isInPlayMode = true;
-      }, 1000);
-      
-    }
-    else{
-      if(currentScene?.children.find(c => c.name == "collider") != null){
-        currentScene?.children.find(c => c.name == "collider")!.removeFromParent();
-      }
-
-      // Make current environment meshes invisible
-      currentEnvironmentMeshes?.traverse((mesh) => {
-        console.log(mesh)
-        if(mesh.isMesh){
-          mesh.material.visible = true;
-        }
-      });
-      currentExitMeshes?.traverse((mesh) => {
-        console.log(mesh)
-        if(mesh.isMesh){
-          mesh.material.visible = true;
-        }
-      });
-      currentPlayer!.geometry.translate( 0, 0.5, 0 );
-      currentPlayer!.position.set(0,0.25,0);
-      currentPlayer?.geometry.computeBoundingSphere();
-      document.getElementById("playButton")!.innerHTML = "PLAY";
-    }
-
+      isInPlayMode = true;
   }
-  
+
+  function readyCurrentSceneForPlay(){
+    debugger
+    setTimeout(() => {
+      if(currentPlayer){
+        //currentPlayer!.geometry.translate( 0, 0.5, 0 );
+        currentPlayer!.position.set(0,3.0,0);
+        playerIsOnGround = false;
+        playerVelocity = new THREE.Vector3();
+        fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
+        init = false;
+        playerVelocity.set(0,0,0);
+        currentPlayer!.updateMatrixWorld();
+        currentPlayer?.geometry.computeBoundingSphere();
+        currentPlayer.material.renderOrder = 0;
+      }
+    }, 1000);
+    
+  }
+
   function addExit(e: Event){
     console.log("exit");
     if(e.currentTarget.checked == true && e.currentTarget.disabled == false){
@@ -1068,13 +1187,15 @@ function stringToAxis(s : string) : Axis {
   let init = false;
 
   function updatePlayer( delta: number ) {
-    if(!isInPlayMode){
+    delta = Math.min(delta, 0.05);
+    if(!isInPlayMode || !currentPlayer){
       console.log("not in play mode");
       return;
     }
     else{
       console.log("trying to move player");
       if(!init){
+        debugger
         app.stage.visible = false;
         init = true;
         //collider.material.visible = false;
@@ -1098,8 +1219,10 @@ function stringToAxis(s : string) : Axis {
     // move the player
     const angle = 0;//controls.getAzimuthalAngle();
     tempVector.set(0,0,0);
-    if ( fwdPressed ) {
 
+    if ( fwdPressed ) {
+      const camfwd = new THREE.Vector3();
+      currentCamera?.getWorldDirection(camfwd);
       tempVector.set( 0, 0, - 1 ).applyAxisAngle( upVector, angle );
     }
 
@@ -1199,8 +1322,9 @@ function stringToAxis(s : string) : Axis {
       playerVelocity.set( 0, 0, 0 );
 
     }
-    debugger
+    
     for(let e in currentExitMeshes?.children){
+      console.log("shoudl only be here when exit in scene");
       const sphere = (currentExitMeshes.children[e] as THREE.Mesh).geometry.boundingSphere?.clone();
       sphere?.applyMatrix4(currentExitMeshes.children[e].matrixWorld);
 
