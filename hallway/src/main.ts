@@ -61,7 +61,7 @@ async function convertStringToGameData(s : string) : Promise<GameData>{
   debugger
   console.log("reached");
   const g = JSON.parse(s) as GameData;
-  if(g.scenes == null) return new GameData();
+  if(g == null || g.scenes == null) return new GameData();
   const loader = new THREE.ObjectLoader();
   //for each scene, fill stuff in
   for(let s in g.scenes){
@@ -348,6 +348,9 @@ function stringToAxis(s : string) : Axis {
       const gizmo = transformControls!.getHelper();
       gizmo.name = 'gizmo';
       gizmo.layers.set(1);
+      if(!currentScene.children.find(c=>c.name == 'gizmo')){
+        currentScene.add(gizmo);
+      }
       currentlySelectedObject = intersects[0].object as THREE.Mesh;
       document.getElementById("exitBox").disabled = false;
     }
@@ -370,8 +373,7 @@ function stringToAxis(s : string) : Axis {
       cloneScene.children.find(c=>c.name == "axesHelper")?.removeFromParent();
       cloneScene.children.find(c=>c.name == "gizmo")?.removeFromParent();
       cloneScene.children.find(c=>c.name == "player")?.removeFromParent();
-
-      currentSceneData!.cameraString = JSON.stringify(currentSceneData?.camera);
+      cloneScene.children.find(c=>c.name == "collider")?.removeFromParent();
       currentSceneData!.scene = cloneScene;
       console.log(cloneScene);
       localStorage.setItem("currentGameData", JSON.stringify(currentGameData));
@@ -710,6 +712,16 @@ function stringToAxis(s : string) : Axis {
 
   function onKeyDown( event: KeyboardEvent ) {
     if(isInPlayMode){
+      const key = controls.key;
+      
+      switch ( event.code ) {
+        case 'ArrowUp': case 'KeyW': case 'KeyZ': key[ 0 ] = - 1; break;
+        case 'ArrowDown': case 'KeyS': key[ 0 ] = 1; break;
+        case 'ArrowLeft': case 'KeyA': case 'KeyQ': key[ 1 ] = - 1; break;
+        case 'ArrowRight': case 'KeyD': key[ 1 ] = 1; break;
+        case 'ShiftLeft' : case 'ShiftRight' : key[ 2 ] = 1; break;
+      }
+
       switch ( event.code ) {
 
         case 'KeyW': fwdPressed = true; break;
@@ -719,8 +731,8 @@ function stringToAxis(s : string) : Axis {
         case 'Space':
           if ( playerIsOnGround ) {
 
-            playerVelocity.y = 10.0;
-            playerIsOnGround = false;
+            //playerVelocity.y = 10.0;
+            //playerIsOnGround = false;
 
           }
 
@@ -733,8 +745,22 @@ function stringToAxis(s : string) : Axis {
     }
   }
 
+
+
   function onKeyUp(event: KeyboardEvent){
     if(isInPlayMode){
+      const key = controls.key;
+      
+      switch ( event.code ) {
+
+        case 'ArrowUp': case 'KeyW': case 'KeyZ': key[ 0 ] = key[ 0 ] < 0 ? 0 : key[ 0 ]; break;
+        case 'ArrowDown': case 'KeyS': key[ 0 ] = key[ 0 ] > 0 ? 0 : key[ 0 ]; break;
+        case 'ArrowLeft': case 'KeyA': case 'KeyQ': key[ 1 ] = key[ 1 ] < 0 ? 0 : key[ 1 ]; break;
+        case 'ArrowRight': case 'KeyD': key[ 1 ] = key[ 1 ] > 0 ? 0 : key[ 1 ]; break;
+        case 'ShiftLeft' : case 'ShiftRight' : key[ 2 ] = 0; break;
+
+      }
+
       switch ( event.code ) {
 
         case 'KeyW': fwdPressed = false; break;
@@ -991,7 +1017,12 @@ function stringToAxis(s : string) : Axis {
     currentExitMeshes = currentScene.children.find(c => c.name == "exitMeshes") as THREE.Group;
     currentlySelectedObject = null;
 
-    transformControls = new TransformControls(currentCamera, threeRenderer.domElement);
+    if(!transformControls){
+      transformControls = new TransformControls(currentCamera, threeRenderer.domElement);
+    }
+    else{
+      transformControls.camera = currentCamera;
+    }
     
 
     // Pixi.js stuff
@@ -1003,11 +1034,28 @@ function stringToAxis(s : string) : Axis {
       perspectiveLinePairZ.resetPoints(currentSceneData.axes2Type, currentSceneData.axes2LinePoints);
     }
     perspectiveManager.assignSceneData(currentSceneData);
-    console.log("done here");
+
+
+
+    //switching to this scene via an exit in play mode 
     if(isInPlayMode){
       isInPlayMode = false;
       readySceneGeometryforPlay();
       readyCurrentSceneForPlay();
+    }
+    else{
+      currentEnvironmentMeshes?.traverse((mesh) => {
+        if(mesh.isMesh){
+          mesh.material.visible = true;
+        }
+      });
+
+      currentExitMeshes?.traverse((mesh) => {
+        if(mesh.isMesh){
+          mesh.material.visible = true;
+        }
+      });
+
 
     }
   }
@@ -1036,8 +1084,20 @@ function stringToAxis(s : string) : Axis {
       if(currentScene?.children.find(c => c.name == "collider") != null){
         currentScene?.children.find(c => c.name == "collider")!.removeFromParent();
       }
-      if(currentEnvironmentMeshes?.children.find(c => c.name == "newCubes") != undefined){
+      if(currentEnvironmentMeshes?.children.find(c => c.name == "newCubes") != null){
         currentEnvironmentMeshes?.children.find(c => c.name == "newCubes")!.removeFromParent();
+      }
+      if(currentPlayer){
+        if(currentPlayer?.children.find(c => c.name == "playerGroup") != null){
+          const g = currentPlayer?.children.find(c => c.name == "playerGroup");
+          g?.traverse(m=>{
+            if(m.isMesh){
+              m.geometry.dispose();
+              m.material.dispose();
+            }
+          });
+          g?.removeFromParent();
+        }
       }
 
       // Make current environment meshes visible
@@ -1083,7 +1143,7 @@ function stringToAxis(s : string) : Axis {
 
       _environmentMeshes?.traverse((mesh) => {
         if(mesh.isMesh){
-          //mesh.material.visible = false;
+          mesh.material.visible = false;
           mesh.updateMatrixWorld();
           if(mesh.geometry.type == "PlaneGeometry"){
             const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1, 10, 10, 10), new THREE.MeshBasicMaterial({visible:false, color:0xff0000}));
@@ -1125,22 +1185,19 @@ function stringToAxis(s : string) : Axis {
   }
 
   function readyCurrentSceneForPlay(){
-    debugger
-    setTimeout(() => {
-      if(currentPlayer){
-        //currentPlayer!.geometry.translate( 0, 0.5, 0 );
-        currentPlayer!.position.set(0,3.0,0);
-        playerIsOnGround = false;
-        playerVelocity = new THREE.Vector3();
-        fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
-        init = false;
-        playerVelocity.set(0,0,0);
-        currentPlayer!.updateMatrixWorld();
-        currentPlayer?.geometry.computeBoundingSphere();
-        currentPlayer.material.renderOrder = 0;
-      }
-    }, 1000);
-    
+    if(currentPlayer){
+      //currentPlayer!.geometry.translate( 0, 0.5, 0 );
+      currentPlayer!.position.set(0,3.0,0);
+      playerIsOnGround = false;
+      playerVelocity = new THREE.Vector3();
+      fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
+      init = false;
+      playerVelocity.set(0,0,0);
+      currentPlayer!.updateMatrixWorld();
+      currentPlayer?.geometry.computeBoundingSphere();
+      currentPlayer.material.renderOrder = 0;
+      currentPlayer.add(playerGroup);
+    }
   }
 
   function addExit(e: Event){
@@ -1193,15 +1250,12 @@ function stringToAxis(s : string) : Axis {
       return;
     }
     else{
-      console.log("trying to move player");
       if(!init){
-        debugger
         app.stage.visible = false;
         init = true;
-        //collider.material.visible = false;
-        //scene.remove(environmentMeshes);
       }
     }
+    updateCharacter(delta);
     if ( playerIsOnGround ) {
 
       playerVelocity.y = delta * params.gravity;
@@ -1220,26 +1274,26 @@ function stringToAxis(s : string) : Axis {
     const angle = 0;//controls.getAzimuthalAngle();
     tempVector.set(0,0,0);
 
+    const camfwd = new THREE.Vector3();
+    currentCamera?.getWorldDirection(camfwd);
+    camfwd.normalize();
+
+    const camleft = camfwd.clone().cross(new THREE.Vector3(0,1,0));
+
     if ( fwdPressed ) {
-      const camfwd = new THREE.Vector3();
-      currentCamera?.getWorldDirection(camfwd);
-      tempVector.set( 0, 0, - 1 ).applyAxisAngle( upVector, angle );
+      tempVector.set( camfwd.x, 0, camfwd.z ).applyAxisAngle( upVector, angle );
     }
 
     if ( bkdPressed ) {
-
-      tempVector.set( 0, 0, 1 ).applyAxisAngle( upVector, angle );
+      tempVector.set( -camfwd.x, 0, -camfwd.z ).applyAxisAngle( upVector, angle );
     }
 
     if ( lftPressed ) {
-
-      tempVector.set( - 1, 0, 0 ).applyAxisAngle( upVector, angle );
+      tempVector.set( -camleft.x, 0, -camleft.z ).applyAxisAngle( upVector, angle );
     }
 
     if ( rgtPressed ) {
-
-      tempVector.set( 1, 0, 0 ).applyAxisAngle( upVector, angle );
-
+      tempVector.set( camleft.x, 0, camleft.z ).applyAxisAngle( upVector, angle );
     }
 
     const fwdVector = new THREE.Vector3(currentPlayer!.position.x, currentPlayer!.position.y + 0.5, currentPlayer!.position.z);
@@ -1324,7 +1378,6 @@ function stringToAxis(s : string) : Axis {
     }
     
     for(let e in currentExitMeshes?.children){
-      console.log("shoudl only be here when exit in scene");
       const sphere = (currentExitMeshes.children[e] as THREE.Mesh).geometry.boundingSphere?.clone();
       sphere?.applyMatrix4(currentExitMeshes.children[e].matrixWorld);
 
@@ -1337,104 +1390,165 @@ function stringToAxis(s : string) : Axis {
         sceneSelectionSelectElement?.dispatchEvent(event);
       }
     }
-}
+  }
 
-  async function initializeApp(){
+  // character model implementation 
+  let model, mixer: THREE.AnimationMixer;
+  let actions: {Idle: THREE.AnimationAction, Walk: THREE.AnimationAction, Run: THREE.AnimationAction};
+  const playerGroup = new THREE.Group();
+  playerGroup.name="playerGroup";
+  
+  const controls = {
+    key: [ 0, 0 ],
+    ease: new THREE.Vector3(),
+    position: new THREE.Vector3(),
+    up: new THREE.Vector3( 0, 1, 0 ),
+    rotate: new THREE.Quaternion(),
+    current: 'Idle',
+    fadeDuration: 0.5,
+    runVelocity: 5,
+    walkVelocity: 1.8,
+    rotateSpeed: 0.05,
+    floorDecale: 0,
+  };
 
-    let model, mixer: THREE.AnimationMixer;
-    let actions: {Idle: THREE.AnimationAction, Walk: THREE.AnimationAction, Run: THREE.AnimationAction};
+  function updateCharacter( delta : number ) {
+
+		const fade = controls.fadeDuration;
+		const key = controls.key;
+		const up = controls.up;
+		const ease = controls.ease;
+		const rotate = controls.rotate;
+		const position = controls.position;
+
+		const active = key[ 0 ] === 0 && key[ 1 ] === 0 ? false : true;
+		const play = active ? ( key[ 2 ] ? 'Run' : 'Walk' ) : 'Idle';
+    console.log(key);
+		// change animation
+
+		if (controls.current != play ) {
+
+			const current = actions[ play ];
+			const old = actions[controls.current as "Idle" | "Walk" | "Run"];
+			controls.current = play;
+
+			setWeight( current, 1.0 );
+			old.fadeOut( fade );
+			current.reset().fadeIn( fade ).play();
+		}
+
+		// move object
+
+		if (controls.current !== 'Idle' ) {
+
+      // run/walk velocity
+      const velocity = controls.current == 'Run' ? controls.runVelocity :controls.walkVelocity;
+
+      // direction with key
     
-    const controls = {
-      key: [ 0, 0 ],
-      ease: new THREE.Vector3(),
-      position: new THREE.Vector3(),
-      up: new THREE.Vector3( 0, 1, 0 ),
-      rotate: new THREE.Quaternion(),
-      current: 'Idle',
-      fadeDuration: 0.5,
-      runVelocity: 5,
-      walkVelocity: 1.8,
-      rotateSpeed: 0.05,
-      floorDecale: 0,
-    };
+      ease.set( key[ 1 ], 0, key[ 0 ] ).multiplyScalar( velocity * delta );
 
-    const group = new THREE.Group();
-    scene.add( group );
+      // calculate camera direction
+      const angle = unwrapRad( Math.atan2( ease.x, ease.z ) + 0 );
+      console.log(angle);
+      rotate.setFromAxisAngle( up, angle );
 
-    const followGroup = new THREE.Group();
-    scene.add( followGroup );
+      // apply camera angle on ease
+      controls.ease.applyAxisAngle( up, 0 );
 
+      position.add( ease );
 
-    function loadModel() {
+      //playerGroup.position.copy( position );
+      playerGroup.quaternion.rotateTowards( rotate, controls.rotateSpeed );
 
-      // Hide the pixi UI
-      //app.stage.visible = false;
+		}
 
-      const loader = new GLTFLoader();
-      const downloadUrl = new URL('/Soldier.glb', import.meta.url);
+		if ( mixer ) mixer.update( delta );
 
-      loader.load( downloadUrl.toString(), function ( gltf ) {
+	}
 
-        model = gltf.scene;
-        //model.scale.set(1.5,1.5,1.5)
-        group.add( model );
-        model.rotation.y = Math.PI;
-        group.rotation.y = Math.PI;
+	function unwrapRad( r : number ) {
 
-        model.traverse( function ( object: THREE.Object3D) {
+		return Math.atan2( Math.sin( r ), Math.cos( r ) );
 
-          if ((object as THREE.Mesh).isMesh ) {
+	}
 
-            if ( object.name == 'vanguard_Mesh' ) {
+	function setWeight( action:THREE.AnimationAction, weight: number ) {
 
-              object.castShadow = true;
-              object.receiveShadow = true;
-              //object.material.envMapIntensity = 0.5;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalness = 1.0;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).roughness = 0.2;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set( 1, 1, 1 );
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalnessMap = 
-                ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).map;
+		action.enabled = true;
+		action.setEffectiveTimeScale( 1 );
+		action.setEffectiveWeight( weight );
 
-            } else {
+	}
+  
+  loadModel();
+  
+  function loadModel() {
 
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalness = 1;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).roughness = 0;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).transparent = true;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity = 0.8;
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set( 1, 1, 1 );
+    // Hide the pixi UI
+    //app.stage.visible = false;
 
-            }
+    const loader = new GLTFLoader();
+    const downloadUrl = new URL('/Soldier.glb', import.meta.url);
+
+    loader.load( downloadUrl.toString(), function ( gltf ) {
+
+      model = gltf.scene;
+      //model.scale.set(1.5,1.5,1.5)
+      playerGroup.add( model );
+      model.rotation.y = Math.PI;
+      playerGroup.rotation.y = Math.PI;
+
+      model.traverse( function ( object: THREE.Object3D) {
+
+        if ((object as THREE.Mesh).isMesh ) {
+
+          if ( object.name == 'vanguard_Mesh' ) {
+
+            object.castShadow = true;
+            object.receiveShadow = true;
+            //object.material.envMapIntensity = 0.5;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalness = 1.0;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).roughness = 0.2;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set( 1, 1, 1 );
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalnessMap = 
+              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).map;
+
+          } else {
+
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalness = 1;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).roughness = 0;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).transparent = true;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity = 0.8;
+            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set( 1, 1, 1 );
 
           }
-
-        } );
-
-        const animations = gltf.animations;
-
-        mixer = new THREE.AnimationMixer( model );
-
-        actions = {
-          Idle: mixer.clipAction(animations[0]),
-          Walk: mixer.clipAction(animations[3]),
-          Run: mixer.clipAction(animations[1])
         }
-
-        for ( const m in actions ) {
-
-          (actions[ m as "Idle" | "Walk" | "Run" ]).enabled = true;
-          actions[ m as "Idle" | "Walk" | "Run" ].setEffectiveTimeScale( 1 );
-          if ( m !== 'Idle' ) actions[ m as "Idle" | "Walk" | "Run" ].setEffectiveWeight( 0 );
-
-        }
-
-        (actions.Idle as THREE.AnimationAction).play();
-
       } );
-      console.log(scene.toJSON());
-      console.log(threeCamera.toJSON());
-    }
+
+      const animations = gltf.animations;
+
+      mixer = new THREE.AnimationMixer( model );
+
+      actions = {
+        Idle: mixer.clipAction(animations[0]),
+        Walk: mixer.clipAction(animations[3]),
+        Run: mixer.clipAction(animations[1])
+      }
+
+      for ( const m in actions ) {
+
+        (actions[ m as "Idle" | "Walk" | "Run" ]).enabled = true;
+        actions[ m as "Idle" | "Walk" | "Run" ].setEffectiveTimeScale( 1 );
+        if ( m !== 'Idle' ) actions[ m as "Idle" | "Walk" | "Run" ].setEffectiveWeight( 0 );
+
+      }
+
+      (actions.Idle as THREE.AnimationAction).play();
+
+    } );
   }
+
 })()
 
 dragElement(document.getElementById("sceneSettingsMenu"));
