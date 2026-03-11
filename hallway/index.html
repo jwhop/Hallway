@@ -27,7 +27,7 @@
             <img id="myImg">
         </div>
     </div>
-    <div class="window" id="sceneSettingsMenu" style="left:1100px; width: 300px; height: 150px;">
+    <div class="window" id="sceneSettingsMenu" style="left:1100px; width: 400px; height: 200px;">
         <div class="draggable title-bar" id="sceneSettingsMenuheader">
             <div class="title-bar-text">
                 Scene Settings
@@ -38,9 +38,19 @@
                 <p> Scene Name</p>
                 <input id="sceneSettingsNameInput">
             </div>
+            <div class="field-row" style="width: 300px">
+                <label for="range25">Player Walk Speed:</label>
+                <label for="range26">Slow</label>
+                <input id="playerSpeed" type="range" min="1" max="5" value="2" />
+                <label for="range27">Fast</label>
+            </div>
+            <div class="field-row-stacked" style="width: 200px; margin-top:20px;">
+                <label for="text24">Text On Scene Enter:</label>
+                <textarea id="enterSceneText" rows="3"></textarea>
+            </div>
         </div>  
     </div>
-    <div class="window" id="objectPropertiesMenu" style="left:1100px; top: 200px; width: 400px; height: 100px;">
+    <div class="window" id="objectPropertiesMenu" style="left:1100px; top: 220px; width: 400px; height: 200px;">
         <div class="draggable title-bar" id="objectPropertiesMenuheader">
             <div class="title-bar-text">
                 Object Settings
@@ -58,11 +68,10 @@
             </div>
             <div class="field-row" >
                 <button id="toggleWireframe"> Toggle Wireframe/Shaded </button>
-                <button id="snapToGround"> Snap to Ground </button>
+                <button id="snapToGround"> Snap to Ground (y = 0)</button>
             </div>
             <div class="field-row" >
-                <button id="removeObject"> removeObject </button>
-            <button id="readyWalkableGeometry"> ready walkable geometry </button>
+                <button id="removeObject"> Remove Object </button>
             </div>
         </div>  
     </div>

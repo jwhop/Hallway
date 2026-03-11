@@ -27,6 +27,9 @@ export class SceneData{
   axes1LinePoints: [THREE.Vector2, THREE.Vector2, THREE.Vector2, THREE.Vector2];
   axes2Type: Axis;
   axes2LinePoints: [THREE.Vector2, THREE.Vector2, THREE.Vector2, THREE.Vector2];
+  playerRunSpeed: number;
+  onSceneEnterText: string;
+  playerScale: THREE.Vector3;
 
   constructor(s: THREE.Scene, c: THREE.Camera, imgSrc: string, id: string, imgData : Image){
     this.scene = s;
@@ -38,6 +41,10 @@ export class SceneData{
     this.axes1LinePoints = [new THREE.Vector2(200,200), new THREE.Vector2(300,300), new THREE.Vector2(300,200), new THREE.Vector2(400,300)];
     this.axes2Type = Axis.PositiveZ;
     this.axes2LinePoints = [new THREE.Vector2(200,400), new THREE.Vector2(300,500), new THREE.Vector2(300,400), new THREE.Vector2(400,500)];
+  
+    this.playerRunSpeed = 2;
+    this.onSceneEnterText = "";
+    this.playerScale = new THREE.Vector3(1,1,1);
   }
 
   setName(s : string){
@@ -117,8 +124,16 @@ function stringToAxis(s : string) : Axis {
   const sceneSelectionSelectElement = document.getElementById("sceneSelection") as HTMLSelectElement;
   const currentSceneHTMLElement = sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex];
   let currentSceneID = "";
+  
   const sceneSettingsNameInputElement = document.getElementById("sceneSettingsNameInput");
   sceneSettingsNameInputElement?.addEventListener('change', changeSceneName);
+
+  const sceneSettingsPlayerWalkSpeedElement = document.getElementById("playerSpeed") as HTMLInputElement;
+  sceneSettingsPlayerWalkSpeedElement?.addEventListener('change', (e) => {if(currentSceneData != null){ currentSceneData.playerRunSpeed = parseFloat(sceneSettingsPlayerWalkSpeedElement.value); save();}})
+
+  const sceneSettingsEnterTextElement = document.getElementById("enterSceneText") as HTMLTextAreaElement;
+  sceneSettingsEnterTextElement?.addEventListener('change', (e) => {if(currentSceneData != null){ currentSceneData.onSceneEnterText = sceneSettingsEnterTextElement.value; save();}})
+
 
   // check local storage for game data 
   const currentGameData = localStorage.getItem("currentGameData") == null? new GameData() : await convertStringToGameData(localStorage.getItem("currentGameData")!);
@@ -340,9 +355,8 @@ function stringToAxis(s : string) : Axis {
     sceneRaycaster.setFromCamera( Mouse, currentCamera! );
     var intersects = sceneRaycaster.intersectObjects( currentScene!.children, true );
     console.log(intersects);
-    debugger
+    
     if(intersects.length > 0 && intersects[0].object.isMesh && transformControls){
-      console.log("ATTACHING");
       transformControls!.attach( intersects[0].object );
 
       const gizmo = transformControls!.getHelper();
@@ -352,11 +366,19 @@ function stringToAxis(s : string) : Axis {
         currentScene.add(gizmo);
       }
       currentlySelectedObject = intersects[0].object as THREE.Mesh;
-      document.getElementById("exitBox").disabled = false;
+      if(intersects[0].object.name == "cube" || intersects[0].object.name =="sphere"){
+        document.getElementById("exitBox").disabled = false;
+      }
+      else{
+        document.getElementById("exitBox").disabled = true;
+      }
+      document.getElementById("objectPropertiesMenu")!.style.visibility = "visible";
+
     }
     else if(intersects.length == 0 && !isSPawning){
       console.log("detaching");
       transformControls!.detach();
+      document.getElementById("objectPropertiesMenu")!.style.visibility = "hidden";
     }
     isDragging = false;
     isDraggingDelta = 0;
@@ -372,10 +394,11 @@ function stringToAxis(s : string) : Axis {
       const cloneScene = currentSceneData.scene.clone();
       cloneScene.children.find(c=>c.name == "axesHelper")?.removeFromParent();
       cloneScene.children.find(c=>c.name == "gizmo")?.removeFromParent();
+      currentSceneData.playerScale = currentPlayer?.scale!;
       cloneScene.children.find(c=>c.name == "player")?.removeFromParent();
       cloneScene.children.find(c=>c.name == "collider")?.removeFromParent();
       currentSceneData!.scene = cloneScene;
-      console.log(cloneScene);
+      console.log(currentSceneData);
       localStorage.setItem("currentGameData", JSON.stringify(currentGameData));
     }
   }
@@ -437,7 +460,7 @@ function stringToAxis(s : string) : Axis {
   document.getElementById("sceneListForExits")?.addEventListener("change", assignExit);
   async function sceneSelectionChanged(e: Event){
     console.log("started scene selection change");
-    const target = e.currentTarget;
+    const target = e.currentTarget as HTMLInputElement;
     if(target.value == 'new'){
 
       await save();
@@ -449,15 +472,17 @@ function stringToAxis(s : string) : Axis {
       newScene.innerHTML = sceneName;
       target.appendChild(newScene);
       newScene.value = sceneName;
-      this.value = newScene.value;
+      target.value = newScene.value;
       
       // Hide welcome text + unhide blank scene text
-      document.getElementById("blankSceneText").style.visibility = "visible";
-      document.getElementById("welcomeSceneText").style.visibility = "hidden";
+      document.getElementById("blankSceneText")!.style.visibility = "visible";
+      document.getElementById("welcomeSceneText")!.style.visibility = "hidden";
+      document.getElementById("sceneSettingsMenu")!.style.visibility = "hidden";
+      document.getElementById("objectPropertiesMenu")!.style.visibility = "hidden";
       const img = (document.getElementById('myImg') as HTMLImageElement); 
       img.height = 0;
       img.width = 0 ;
-      debugger
+      
       const myImg = document.getElementById("myImg");
       if(myImg) myImg.style.visibility = "hidden";
       dropZone!.addEventListener("dragover", dropZoneDragOver);
@@ -470,7 +495,7 @@ function stringToAxis(s : string) : Axis {
       threeRenderer.setSize(0, 0);
 
       // reset properties of scene settings menu
-      resetSceneSettingsMenu(sceneName);
+      resetSceneSettingsMenu(null);
 
       // change global scene id 
       currentSceneID = sceneName;
@@ -479,10 +504,10 @@ function stringToAxis(s : string) : Axis {
       document.getElementById("blankSceneText").style.visibility = "hidden";
       document.getElementById("welcomeSceneText").style.visibility = "hidden";
       const sceneName = sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML;
-      resetSceneSettingsMenu(sceneName);
       const scene = currentGameData.scenes.find(s=>s.name == sceneName);
       console.log("about to populate scene");
       if(scene){
+        resetSceneSettingsMenu(scene);
         console.log(scene);
         isLoading = true;
         await populateScene(scene, true);
@@ -491,10 +516,19 @@ function stringToAxis(s : string) : Axis {
     }
   }
 
-  function resetSceneSettingsMenu(s : string){
-    sceneSettingsNameInputElement.value = s;
-    
+  function resetSceneSettingsMenu(s : SceneData | null){
+    if(s != null){
+      (sceneSettingsNameInputElement as HTMLInputElement).value = s.name;
+      (sceneSettingsEnterTextElement as HTMLTextAreaElement).value = s.onSceneEnterText;
+      (sceneSettingsPlayerWalkSpeedElement as HTMLInputElement).value = s.playerRunSpeed.toString();
+    }
+    else{
+      (sceneSettingsNameInputElement as HTMLInputElement).value = sceneSelectionSelectElement.value;
+      (sceneSettingsEnterTextElement as HTMLTextAreaElement).value = "";
+      (sceneSettingsPlayerWalkSpeedElement as HTMLInputElement).value = "2";
+    }
   }
+
 
   function changeSceneName(){
     currentSceneData?.setName((sceneSettingsNameInputElement as HTMLInputElement).value);
@@ -516,8 +550,8 @@ function stringToAxis(s : string) : Axis {
     currentScene!.add( gizmo );
     currentlySelectedObject = p;
     p.layers.set(1);
-          console.log("ATTACHING");
     document.getElementById("exitBox")!.disabled = true;
+    document.getElementById("objectPropertiesMenu")!.style.visibility = "visible";
   }
 
   function addCube(){
@@ -533,8 +567,8 @@ function stringToAxis(s : string) : Axis {
     currentlySelectedObject = p;
     snapToGround();
     p.layers.set(1);
-          console.log("ATTACHING");
     document.getElementById("exitBox").disabled = false;
+    document.getElementById("objectPropertiesMenu")!.style.visibility = "visible";
   }
 
   function addSphere(){
@@ -550,9 +584,8 @@ function stringToAxis(s : string) : Axis {
     currentlySelectedObject = p;
     snapToGround();
     p.layers.set(1);
-          console.log("ATTACHING");
     document.getElementById("exitBox").disabled = false;
-
+    document.getElementById("objectPropertiesMenu")!.style.visibility = "visible";
   }
 
   function exportEditor(){
@@ -836,18 +869,14 @@ function stringToAxis(s : string) : Axis {
     if(isInPlayMode) return;
     isLoading = true;
 
-    const wrapper = document.getElementById('innerContainer') as HTMLElement;
     const img = (document.getElementById('myImg') as HTMLImageElement); 
+    document.getElementById("sceneSettingsMenu")!.style.visibility = "visible";
 
-    
-    img!.id = "myImg";
     img!.src = imgUrl;
     img.height = 0;
-    img.width = 0 ;
-    debugger
+    img.width = 0;
     img!.style.visibility = "visible";
     img!.onload = async function(){
-      debugger
       // Hide blank scene text
       (document.getElementById("blankSceneText") as HTMLElement).style.visibility = "hidden";
 
@@ -905,11 +934,12 @@ function stringToAxis(s : string) : Axis {
         new THREE.MeshStandardMaterial()
       );
       newPlayer.name = "player";
+      newPlayer.layers.set(1);
       //newPlayer.geometry.translate( 0, 0.5, 0 );
-      newPlayer.position.set(0,0.0,0);
+      //newPlayer.position.set(0,0.0,0);
       newPlayer.userData.capsuleInfo = {
         radius: 0.5,
-        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  -1.0, 0.0 ) )
+        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  0.0, 0.0 ) )
       };
 
       // New camera, new scene, new scene data
@@ -1002,17 +1032,19 @@ function stringToAxis(s : string) : Axis {
         new THREE.MeshStandardMaterial()
       );
       newPlayer.name = "player";
+      newPlayer.scale.set(currentSceneData.playerScale.x, currentSceneData.playerScale.y, currentSceneData.playerScale.z);
+      newPlayer.layers.set(1);
       //newPlayer.geometry.translate( 0, 0.5, 0 );
-      newPlayer.position.set(0,0.0,0);
+      //newPlayer.position.set(0,0.0,0);
       newPlayer.userData.capsuleInfo = {
         radius: 0.5,
-        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  -1.0, 0.0 ) )
+        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  0.0, 0.0 ) )
       };
       currentScene.add(newPlayer);
       currentPlayer = newPlayer;
     }
 
-    currentPlayer?.position.set(0,isInPlayMode? 1 : 0,0);
+    //currentPlayer?.position.set(0,isInPlayMode? 1 : 0,0);
     currentEnvironmentMeshes = currentScene.children.find(c => c.name == "environmentMeshes") as THREE.Group;
     currentExitMeshes = currentScene.children.find(c => c.name == "exitMeshes") as THREE.Group;
     currentlySelectedObject = null;
@@ -1073,6 +1105,8 @@ function stringToAxis(s : string) : Axis {
       readyCurrentSceneForPlay();
 
       document.getElementById("playButton")!.innerHTML = "STOP";
+      transformControls!.detach();
+
       
       setTimeout(() => {
         isInPlayMode = true;
@@ -1197,6 +1231,7 @@ function stringToAxis(s : string) : Axis {
       currentPlayer?.geometry.computeBoundingSphere();
       currentPlayer.material.renderOrder = 0;
       currentPlayer.add(playerGroup);
+      currentPlayer.material.visible = false;
     }
   }
 
@@ -1232,7 +1267,7 @@ function stringToAxis(s : string) : Axis {
   const params = {
 
     gravity: - 10,
-    playerSpeed: 4,
+    playerSpeed: 2,
     physicsSteps: 5,
 
   };
@@ -1246,7 +1281,6 @@ function stringToAxis(s : string) : Axis {
   function updatePlayer( delta: number ) {
     delta = Math.min(delta, 0.05);
     if(!isInPlayMode || !currentPlayer){
-      console.log("not in play mode");
       return;
     }
     else{
@@ -1255,7 +1289,6 @@ function stringToAxis(s : string) : Axis {
         init = true;
       }
     }
-    updateCharacter(delta);
     if ( playerIsOnGround ) {
 
       playerVelocity.y = delta * params.gravity;
@@ -1267,44 +1300,53 @@ function stringToAxis(s : string) : Axis {
     }
 
     // adjust the player model
-    
     currentPlayer!.position.addScaledVector( playerVelocity, delta );
 
     // move the player
-    const angle = 0;//controls.getAzimuthalAngle();
+    const angle = 0;
     tempVector.set(0,0,0);
 
     const camfwd = new THREE.Vector3();
     currentCamera?.getWorldDirection(camfwd);
+    camfwd.projectOnPlane(new THREE.Vector3(0,1,0));
     camfwd.normalize();
 
     const camleft = camfwd.clone().cross(new THREE.Vector3(0,1,0));
 
     if ( fwdPressed ) {
-      tempVector.set( camfwd.x, 0, camfwd.z ).applyAxisAngle( upVector, angle );
+      tempVector.add( new THREE.Vector3(camfwd.x, 0, camfwd.z ).applyAxisAngle( upVector, angle ));
     }
 
     if ( bkdPressed ) {
-      tempVector.set( -camfwd.x, 0, -camfwd.z ).applyAxisAngle( upVector, angle );
+      tempVector.add( new THREE.Vector3(-camfwd.x, 0, -camfwd.z ).applyAxisAngle( upVector, angle ));
     }
 
     if ( lftPressed ) {
-      tempVector.set( -camleft.x, 0, -camleft.z ).applyAxisAngle( upVector, angle );
+      tempVector.add( new THREE.Vector3(-camleft.x, 0, -camleft.z ).applyAxisAngle( upVector, angle ));
     }
 
     if ( rgtPressed ) {
-      tempVector.set( camleft.x, 0, camleft.z ).applyAxisAngle( upVector, angle );
+      tempVector.add( new THREE.Vector3( camleft.x, 0, camleft.z ).applyAxisAngle( upVector, angle ));
     }
+    tempVector.normalize();
 
     const fwdVector = new THREE.Vector3(currentPlayer!.position.x, currentPlayer!.position.y + 0.5, currentPlayer!.position.z);
-    fwdVector.addScaledVector(tempVector, params.playerSpeed * delta);
-    const raycaster = new THREE.Raycaster(fwdVector, new THREE.Vector3(0,-1,0), 0.001, 10);
+    const fwdVectorForCubeTarget = fwdVector.clone();
+    fwdVector.addScaledVector(tempVector, currentSceneData!.playerRunSpeed * delta);
+    fwdVector.y += 50;
+    fwdVectorForCubeTarget.addScaledVector(tempVector, currentSceneData!.playerRunSpeed * delta * 100);
+
+    const raycaster = new THREE.Raycaster(fwdVector, new THREE.Vector3(0,-1,0), 0.001, 100);
     raycaster.layers.set(2);
     const intersects = raycaster.intersectObjects(currentScene.children, true);
     
     if(intersects.length > 0)
     {
-      currentPlayer!.position.addScaledVector( tempVector, params.playerSpeed * delta );
+      console.log("can move");
+      currentPlayer!.position.addScaledVector( tempVector, currentSceneData!.playerRunSpeed * delta );
+    }
+    else{
+      console.log("cant move");
     }
     currentPlayer!.updateMatrixWorld();
 
@@ -1390,6 +1432,8 @@ function stringToAxis(s : string) : Axis {
         sceneSelectionSelectElement?.dispatchEvent(event);
       }
     }
+
+    updateCharacter(delta, fwdVectorForCubeTarget);
   }
 
   // character model implementation 
@@ -1412,7 +1456,7 @@ function stringToAxis(s : string) : Axis {
     floorDecale: 0,
   };
 
-  function updateCharacter( delta : number ) {
+  function updateCharacter( delta : number, movement: THREE.Vector3) {
 
 		const fade = controls.fadeDuration;
 		const key = controls.key;
@@ -1423,7 +1467,6 @@ function stringToAxis(s : string) : Axis {
 
 		const active = key[ 0 ] === 0 && key[ 1 ] === 0 ? false : true;
 		const play = active ? ( key[ 2 ] ? 'Run' : 'Walk' ) : 'Idle';
-    console.log(key);
 		// change animation
 
 		if (controls.current != play ) {
@@ -1445,22 +1488,21 @@ function stringToAxis(s : string) : Axis {
       const velocity = controls.current == 'Run' ? controls.runVelocity :controls.walkVelocity;
 
       // direction with key
-    
-      ease.set( key[ 1 ], 0, key[ 0 ] ).multiplyScalar( velocity * delta );
+      //movement.normalize();
+      ease.set(movement.x - currentPlayer!.position.x, 0, movement.z - currentPlayer!.position.z).multiplyScalar( velocity * delta );
 
       // calculate camera direction
       const angle = unwrapRad( Math.atan2( ease.x, ease.z ) + 0 );
-      console.log(angle);
+      //console.log(angle);
       rotate.setFromAxisAngle( up, angle );
-
       // apply camera angle on ease
-      controls.ease.applyAxisAngle( up, 0 );
+      //controls.ease.applyAxisAngle( up, 0 );
 
       position.add( ease );
 
       //playerGroup.position.copy( position );
-      playerGroup.quaternion.rotateTowards( rotate, controls.rotateSpeed );
-
+      playerGroup.quaternion.rotateTowards(rotate, controls.rotateSpeed);
+      //playerGroup.lookAt(new THREE.Vector3(cube?.position.x, 0, cube?.position.z));
 		}
 
 		if ( mixer ) mixer.update( delta );
@@ -1498,6 +1540,10 @@ function stringToAxis(s : string) : Axis {
       playerGroup.add( model );
       model.rotation.y = Math.PI;
       playerGroup.rotation.y = Math.PI;
+      const bbox = new THREE.Box3().setFromObject(playerGroup);
+      const size = new THREE.Vector3();
+      playerGroup.position.y = 0 - bbox.getSize(size).y /2;
+
 
       model.traverse( function ( object: THREE.Object3D) {
 
