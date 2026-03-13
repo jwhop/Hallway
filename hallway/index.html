@@ -137,7 +137,7 @@
                 <p>Perspective Line Settings</p>
             </section>
             <section class="field-row" id="hideLines">
-                <button>Hide Lines</button>
+                <button>Toggle Lines Visibility</button>
             </section>
             <section class="field-row">
                 <p> Axes 1 </p>
@@ -169,26 +169,45 @@
     <img src="./assets/desk3.png" style="top: 0px; left: 0px; width: 1920px; position: absolute; z-index: -200;">
     <div>
         <img src="./assets/slateRender.png" style="top: 922px; left: 970px; position: absolute; z-index: -190;" class="renderedImage"
-            onclick="const e = document.getElementById('sceneSelectionMenu'); e.style.visibility = 'visible'; e.style.left = '942px'; e.style.top = '900px';">
+            onclick="const e = document.getElementById('sceneSelectionMenu'); e.style.visibility = 'visible'; e.style.left = '942px'; e.style.top = '900px';"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Scene Select';document.getElementById('HoverText').classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
     </div>
     <div>
         <img src="./assets/bookRender.png" style="top: 560px; left: 1042px; position: absolute; z-index: -200;" class="renderedImage"
-            onclick="const e = document.getElementById('imagesMenu'); e.style.visibility = 'visible'; e.style.left = '1042px'; e.style.top = '500px';">
+            onclick="const e = document.getElementById('imagesMenu'); e.style.visibility = 'visible'; e.style.left = '1042px'; e.style.top = '500px';"
+                onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Backgrounds';t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+                onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
     </div>
     <div>
-        <img src="./assets/cubeRender.png" id="addCube" style="top: 762px; left: 1202px; position: absolute; z-index: -200;" class="renderedImage">
+        <img src="./assets/cubeRender.png" id="addCube" style="top: 762px; left: 1202px; position: absolute; z-index: -200;" class="renderedImage"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Add Cube';t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
     </div>
     <div>
-        <img src="./assets/sphereRender.png" id="addSphere" style="top: 766px; left: 1484px; position: absolute; z-index: -200;" class="renderedImage">
+        <img src="./assets/sphereRender.png" id="addSphere" style="top: 766px; left: 1484px; position: absolute; z-index: -200;" class="renderedImage"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Add Sphere';t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
     </div>
     <div>
-        <img src="./assets/planeRender.png" id="addPlane" style="top: 912px; left: 1350px; position: absolute; z-index: -200;" class="renderedImage">
+        <img src="./assets/planeRender.png" id="addPlane" style="top: 912px; left: 1350px; position: absolute; z-index: -200;" class="renderedImage"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Add Plane'; t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
     </div>
     <div>
         <img src="./assets/notebookRender.png" style="top: 906px; left: 1616px; position: absolute; z-index: -200;" class="renderedImage"
-            onclick="const e = document.getElementById('objectsMenu'); e.style.visibility = 'visible'; e.style.left = '1342px'; e.style.top = '500px';">
+            onclick="const e = document.getElementById('objectsMenu'); e.style.visibility = 'visible'; e.style.left = '1342px'; e.style.top = '500px';"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Objects'; t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+        </img>
     </div>
-
+    
+    <h1 id="HoverText" style="position:absolute; left:1300px; top: 550px;" class="wordart rainbow">
+        <span class="text" id="HoverTextSpan"></span>
+    </h1>
+    <script>
+        const Themes = ['purple', 'rainbow', 'blues', 'superhero', 'radial', 'tilt', 'horizon'];
+    </script>
     <div>
         <button id="playButton" style="position: absolute; left: 600px; top: 1000px;">PLAY</button>
     </div>

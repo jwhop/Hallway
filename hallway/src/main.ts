@@ -77,6 +77,14 @@ async function convertStringToGameData(s : string) : Promise<GameData>{
       const scene = g.scenes[s] as SceneData;
       console.log(g);
       scene.camera = loader.parse(scene.camera);
+      if(scene.scene.geometries.find(g=>g.type == "RoundedBoxGeometry")){
+        //remove geometry
+        const g = scene.scene.geometries.find(g=>g.type == "RoundedBoxGeometry");
+        scene.scene.geometries.splice(scene.scene.geometries.indexOf(g), 1);
+        const o = scene.scene.object.children.find( c => c.name == 'player');
+        scene.scene.object.children.splice(scene.scene.object.children.indexOf(o), 1);
+        console.log("found the bad one");
+      }
       scene.scene = loader.parse(scene.scene);
 
       // Create new scene name
@@ -302,7 +310,7 @@ function stringToAxis(s : string) : Axis {
   console.log("initializing");
   // Configure Three.js renderer size and background color
   threeRenderer.setSize(0, 0);
-
+  threeRenderer.sortObjects = false;
   // Scene and camera are null for now
   let currentScene: null | THREE.Scene = null;
   let currentCamera: null | THREE.Camera = null;
@@ -323,6 +331,17 @@ function stringToAxis(s : string) : Axis {
   let isLoading = false;
   let isMouseOverCanvas = false;
   
+  // Materials
+  const editorMaterial = new THREE.MeshBasicMaterial({
+    wireframe: true,
+    transparent: true,
+    opacity: 0.7
+  });
+
+  const playMaterial = new THREE.MeshBasicMaterial({
+    colorWrite: false
+  })
+
   document.addEventListener( 'mousedown', function(event){
     isMouseDown = true;
     isDraggingDelta = 0;
@@ -397,6 +416,7 @@ function stringToAxis(s : string) : Axis {
       currentSceneData.playerScale = currentPlayer?.scale!;
       cloneScene.children.find(c=>c.name == "player")?.removeFromParent();
       cloneScene.children.find(c=>c.name == "collider")?.removeFromParent();
+      cloneScene.children.find(c=>c.name == "" && c.type == "Object3D")?.removeFromParent();
       currentSceneData!.scene = cloneScene;
       console.log(currentSceneData);
       localStorage.setItem("currentGameData", JSON.stringify(currentGameData));
@@ -430,8 +450,7 @@ function stringToAxis(s : string) : Axis {
       app.renderer.resetState();
       app.renderer.render({ container: app.stage });
     }
-    
-    
+
     // Continue animation loop
     requestAnimationFrame(loop);
   }
@@ -458,6 +477,7 @@ function stringToAxis(s : string) : Axis {
   document.getElementById("playButton")?.addEventListener("click", playScene);
   document.getElementById("exitBox")?.addEventListener("change", addExit);
   document.getElementById("sceneListForExits")?.addEventListener("change", assignExit);
+  
   async function sceneSelectionChanged(e: Event){
     console.log("started scene selection change");
     const target = e.currentTarget as HTMLInputElement;
@@ -539,7 +559,8 @@ function stringToAxis(s : string) : Axis {
     if(isInPlayMode) return;
     if(currentEnvironmentMeshes == null) return;
     isSPawning = true;
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(1,1,25, 25), new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(Math.random(), 0.4, 0.75), wireframe: true}))
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(1,1,25, 25), editorMaterial);
+    p.material.color = new THREE.Color().setHSL(Math.random(), 0.4, 0.75);
     p.rotateX(-Math.PI / 2);
     currentEnvironmentMeshes!.add(p)
     transformControls!.attach( p );
@@ -558,7 +579,8 @@ function stringToAxis(s : string) : Axis {
     if(isInPlayMode) return;
     if(currentEnvironmentMeshes == null) return;
     isSPawning = true;
-    const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1, 10, 10, 10), new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(Math.random(), 0.4, 0.75), wireframe: false, transparent: true, opacity: 0.9}))
+    const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1, 10, 10, 10), editorMaterial);
+    p.material.color = new THREE.Color().setHSL(Math.random(), 0.4, 0.75);
     currentEnvironmentMeshes!.add(p)
     transformControls!.attach( p );
     p.name="cube";
@@ -567,6 +589,7 @@ function stringToAxis(s : string) : Axis {
     currentlySelectedObject = p;
     snapToGround();
     p.layers.set(1);
+    p.renderOrder = 4;
     document.getElementById("exitBox").disabled = false;
     document.getElementById("objectPropertiesMenu")!.style.visibility = "visible";
   }
@@ -575,7 +598,8 @@ function stringToAxis(s : string) : Axis {
     if(isInPlayMode) return;
     if(currentEnvironmentMeshes == null) return;
     isSPawning = true;
-    const p = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 10 ), new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(Math.random(), 0.4, 0.75), wireframe: false, transparent: true, opacity: 0.9}))
+    const p = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 10 ), editorMaterial);
+    p.material.color = new THREE.Color().setHSL(Math.random(), 0.4, 0.75);
     currentEnvironmentMeshes!.add(p)
     transformControls!.attach( p );
     p.name="sphere";
@@ -584,6 +608,7 @@ function stringToAxis(s : string) : Axis {
     currentlySelectedObject = p;
     snapToGround();
     p.layers.set(1);
+    p.renderOrder = 4;
     document.getElementById("exitBox").disabled = false;
     document.getElementById("objectPropertiesMenu")!.style.visibility = "visible";
   }
@@ -876,6 +901,8 @@ function stringToAxis(s : string) : Axis {
     img.height = 0;
     img.width = 0;
     img!.style.visibility = "visible";
+    app.stage.visible = true;
+
     img!.onload = async function(){
       // Hide blank scene text
       (document.getElementById("blankSceneText") as HTMLElement).style.visibility = "hidden";
@@ -886,7 +913,6 @@ function stringToAxis(s : string) : Axis {
         img!.width = img.height * (img.naturalWidth/img.naturalHeight);
       }
       else{
-        console.log("here");
         img!.width = 750;
         img!.height = img.width * (img.naturalHeight / img.naturalWidth)
       }
@@ -935,6 +961,7 @@ function stringToAxis(s : string) : Axis {
       );
       newPlayer.name = "player";
       newPlayer.layers.set(1);
+      newPlayer.renderOrder = 0;
       //newPlayer.geometry.translate( 0, 0.5, 0 );
       //newPlayer.position.set(0,0.0,0);
       newPlayer.userData.capsuleInfo = {
@@ -956,7 +983,9 @@ function stringToAxis(s : string) : Axis {
       newScene.add( axesHelper );
 
       // Basic light - are we even using this?
-      newScene.add(new THREE.AmbientLight(0xfffff, 1));
+      const light = new THREE.AmbientLight(0xffffff, 2);
+      light.name = "light";
+      newScene?.add(light);
       
       // Done initializing new scene, now we populate current scene with it
       const newSceneData = new SceneData(newScene, newCamera, imgUrl, currentSceneID, imgData);
@@ -968,6 +997,7 @@ function stringToAxis(s : string) : Axis {
   }
 
   async function populateScene(sceneData: SceneData, populateImg = false){
+    console.log(sceneData);
     // html stuff 
     currentSceneData = sceneData;
     currentSceneID = currentSceneData.id;
@@ -1056,6 +1086,11 @@ function stringToAxis(s : string) : Axis {
       transformControls.camera = currentCamera;
     }
     
+    // sometimes bits from the transform controls can get stuck in the scene?
+    const junk = currentScene?.children.find(c=>c.name == "" && c.type == "Object3D");
+    if(junk){
+      junk.removeFromParent();
+    }
 
     // Pixi.js stuff
     perspectiveManager.assignCamera(currentCamera as THREE.PerspectiveCamera);
@@ -1066,8 +1101,6 @@ function stringToAxis(s : string) : Axis {
       perspectiveLinePairZ.resetPoints(currentSceneData.axes2Type, currentSceneData.axes2LinePoints);
     }
     perspectiveManager.assignSceneData(currentSceneData);
-
-
 
     //switching to this scene via an exit in play mode 
     if(isInPlayMode){
@@ -1105,6 +1138,7 @@ function stringToAxis(s : string) : Axis {
       readyCurrentSceneForPlay();
 
       document.getElementById("playButton")!.innerHTML = "STOP";
+      sceneSelectionSelectElement.disabled = true;
       transformControls!.detach();
 
       
@@ -1114,6 +1148,7 @@ function stringToAxis(s : string) : Axis {
       
     }
     else{
+      debugger
       isInPlayMode = false;
       if(currentScene?.children.find(c => c.name == "collider") != null){
         currentScene?.children.find(c => c.name == "collider")!.removeFromParent();
@@ -1121,9 +1156,11 @@ function stringToAxis(s : string) : Axis {
       if(currentEnvironmentMeshes?.children.find(c => c.name == "newCubes") != null){
         currentEnvironmentMeshes?.children.find(c => c.name == "newCubes")!.removeFromParent();
       }
+      
       if(currentPlayer){
         if(currentPlayer?.children.find(c => c.name == "playerGroup") != null){
           const g = currentPlayer?.children.find(c => c.name == "playerGroup");
+          console.log(g);
           g?.traverse(m=>{
             if(m.isMesh){
               m.geometry.dispose();
@@ -1132,19 +1169,23 @@ function stringToAxis(s : string) : Axis {
           });
           g?.removeFromParent();
         }
+        currentPlayer.material.visible = true;
       }
 
       // Make current environment meshes visible
       currentEnvironmentMeshes?.traverse((mesh) => {
         console.log(mesh)
         if(mesh.isMesh){
-          mesh.material.visible = true;
+          mesh.material = editorMaterial;
+          mesh.material.color = new THREE.Color().setHSL(Math.random(), 0.4, 0.75);
         }
       });
+
       currentExitMeshes?.traverse((mesh) => {
         console.log(mesh)
         if(mesh.isMesh){
-          mesh.material.visible = true;
+          mesh.material = editorMaterial;
+          mesh.material.color = new THREE.Color().setHSL(Math.random(), 0.4, 0.75);
         }
       });
 
@@ -1155,6 +1196,8 @@ function stringToAxis(s : string) : Axis {
       }
       
       document.getElementById("playButton")!.innerHTML = "PLAY";
+      sceneSelectionSelectElement.disabled = false;
+
     }
 
   }
@@ -1175,9 +1218,13 @@ function stringToAxis(s : string) : Axis {
         _environmentMeshes?.children.find(c=>c.name == "newCubes")?.removeFromParent();
       }
 
+
       _environmentMeshes?.traverse((mesh) => {
         if(mesh.isMesh){
-          mesh.material.visible = false;
+          //mesh.material.visible = false;
+          mesh.material = playMaterial;
+          mesh.renderOrder = 2;
+          //mesh.material.opacity = 0.1;
           mesh.updateMatrixWorld();
           if(mesh.geometry.type == "PlaneGeometry"){
             const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1, 10, 10, 10), new THREE.MeshBasicMaterial({visible:false, color:0xff0000}));
@@ -1229,9 +1276,18 @@ function stringToAxis(s : string) : Axis {
       playerVelocity.set(0,0,0);
       currentPlayer!.updateMatrixWorld();
       currentPlayer?.geometry.computeBoundingSphere();
-      currentPlayer.material.renderOrder = 0;
+      currentPlayer.renderOrder = 0;
       currentPlayer.add(playerGroup);
+      currentPlayer.children[0].traverse(m => {
+        if(m.isMesh)
+          m.renderOrder = 0;
+      })
       currentPlayer.material.visible = false;
+    }
+    if(currentScene?.children.find(c=>c.name =="light")){
+      const light = new THREE.AmbientLight(0xffffff, 2);
+      light.name = "light";
+      currentScene?.add(light);
     }
   }
 
@@ -1438,7 +1494,7 @@ function stringToAxis(s : string) : Axis {
 
   // character model implementation 
   let model, mixer: THREE.AnimationMixer;
-  let actions: {Idle: THREE.AnimationAction, Walk: THREE.AnimationAction, Run: THREE.AnimationAction};
+  let actions: {Idle: THREE.AnimationAction, Walk: THREE.AnimationAction};
   const playerGroup = new THREE.Group();
   playerGroup.name="playerGroup";
   
@@ -1466,13 +1522,13 @@ function stringToAxis(s : string) : Axis {
 		const position = controls.position;
 
 		const active = key[ 0 ] === 0 && key[ 1 ] === 0 ? false : true;
-		const play = active ? ( key[ 2 ] ? 'Run' : 'Walk' ) : 'Idle';
+		const play = active ? 'Walk' : 'Idle';
 		// change animation
 
 		if (controls.current != play ) {
 
 			const current = actions[ play ];
-			const old = actions[controls.current as "Idle" | "Walk" | "Run"];
+			const old = actions[controls.current as "Idle" | "Walk"];
 			controls.current = play;
 
 			setWeight( current, 1.0 );
@@ -1485,11 +1541,11 @@ function stringToAxis(s : string) : Axis {
 		if (controls.current !== 'Idle' ) {
 
       // run/walk velocity
-      const velocity = controls.current == 'Run' ? controls.runVelocity :controls.walkVelocity;
+      const velocity = controls.walkVelocity;
 
       // direction with key
       //movement.normalize();
-      ease.set(movement.x - currentPlayer!.position.x, 0, movement.z - currentPlayer!.position.z).multiplyScalar( velocity * delta );
+      ease.set(currentPlayer!.position.x - movement.x, 0, currentPlayer!.position.z - movement.z ).multiplyScalar( velocity * delta );
 
       // calculate camera direction
       const angle = unwrapRad( Math.atan2( ease.x, ease.z ) + 0 );
@@ -1531,64 +1587,44 @@ function stringToAxis(s : string) : Axis {
     //app.stage.visible = false;
 
     const loader = new GLTFLoader();
-    const downloadUrl = new URL('/Soldier.glb', import.meta.url);
+    const downloadUrl = new URL('/snake.glb', import.meta.url);
 
     loader.load( downloadUrl.toString(), function ( gltf ) {
 
       model = gltf.scene;
-      //model.scale.set(1.5,1.5,1.5)
+      model.scale.set(0.02,0.02,0.02);
       playerGroup.add( model );
       model.rotation.y = Math.PI;
       playerGroup.rotation.y = Math.PI;
       const bbox = new THREE.Box3().setFromObject(playerGroup);
       const size = new THREE.Vector3();
-      playerGroup.position.y = 0 - bbox.getSize(size).y /2;
-
+      playerGroup.position.y = 0; // bbox.getSize(size).y /2;
 
       model.traverse( function ( object: THREE.Object3D) {
 
         if ((object as THREE.Mesh).isMesh ) {
-
-          if ( object.name == 'vanguard_Mesh' ) {
-
-            object.castShadow = true;
-            object.receiveShadow = true;
-            //object.material.envMapIntensity = 0.5;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalness = 1.0;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).roughness = 0.2;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set( 1, 1, 1 );
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalnessMap = 
-              ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).map;
-
-          } else {
-
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).metalness = 1;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).roughness = 0;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).transparent = true;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity = 0.8;
-            ((object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set( 1, 1, 1 );
-
-          }
+          (object as THREE.Mesh).material.depthWrite = true;
         }
       } );
 
       const animations = gltf.animations;
 
       mixer = new THREE.AnimationMixer( model );
-
+      console.log(animations);
       actions = {
         Idle: mixer.clipAction(animations[0]),
-        Walk: mixer.clipAction(animations[3]),
-        Run: mixer.clipAction(animations[1])
+        Walk: mixer.clipAction(animations[1])
       }
 
       for ( const m in actions ) {
 
-        (actions[ m as "Idle" | "Walk" | "Run" ]).enabled = true;
-        actions[ m as "Idle" | "Walk" | "Run" ].setEffectiveTimeScale( 1 );
-        if ( m !== 'Idle' ) actions[ m as "Idle" | "Walk" | "Run" ].setEffectiveWeight( 0 );
+        (actions[ m as "Idle" | "Walk"]).enabled = true;
+        actions[ m as "Idle" | "Walk"].setEffectiveTimeScale( 1 );
+        if ( m !== 'Idle' ) actions[ m as "Idle" | "Walk"].setEffectiveWeight( 0 );
 
       }
+
+      
 
       (actions.Idle as THREE.AnimationAction).play();
 
