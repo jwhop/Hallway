@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="https://unpkg.com/xp.css">
+    <title>Pavement</title>
+  <script type="module" crossorigin src="assets/index-DhwGvXic.js"></script>
+  <link rel="stylesheet" crossorigin href="assets/index-BU925UX0.css">
+</head>
+
+<body>
+    <img src="assets/monitor-DbyrzDPT.png" class="monitorImage" style="visibility: hidden;">
+    <div class="window" id="outsideWrapper">
+        <div class="title-bar">
+        <div class="title-bar-text">
+          Sidewalks
+        </div>
+      </div>
+        <div class="insideWrapper" id="innerContainer">
+            <div id="welcomeSceneText" style="visibility: visible; padding: 20px; width:675px; text-align: center;" >
+                <h1>Welcome to Sidewalks!</h1>
+                <h2>Get started by creating a new scene from the scene selection icon.</h2>
+            </div>
+            <div id="blankSceneText" style="visibility: hidden; position: absolute; top: 100px; padding: 20px; width:675px; text-align: center; cursor: none; pointer-events: none;" >
+                <h2>I am an empty scene! drag a background onto me from the background selection.</h2>
+            </div>
+            <img id="myImg">
+        </div>
+    </div>
+    <div class="window" id="sceneSettingsMenu" style="left:1100px; width: 400px; height: 200px;visibility: hidden;">
+        <div class="draggable title-bar" id="sceneSettingsMenuheader">
+            <div class="title-bar-text">
+                Scene Settings
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="field-row">
+                <p> Scene Name</p>
+                <input id="sceneSettingsNameInput">
+            </div>
+            <div class="field-row" style="width: 300px">
+                <label for="range25">Player Walk Speed:</label>
+                <label for="range26">Slow</label>
+                <input id="playerSpeed" type="range" min="1" max="5" value="2" />
+                <label for="range27">Fast</label>
+            </div>
+            <div class="field-row-stacked" style="width: 200px; margin-top:20px;">
+                <label for="text24">Text On Scene Enter:</label>
+                <textarea id="enterSceneText" rows="3"></textarea>
+            </div>
+        </div>  
+    </div>
+    <div class="window" id="objectPropertiesMenu" style="left:1100px; top: 220px; width: 400px; height: 200px; visibility: hidden;">
+        <div class="draggable title-bar" id="objectPropertiesMenuheader">
+            <div class="title-bar-text">
+                Object Settings
+            </div>
+        </div>
+        <div class="window-body">
+            
+            
+            <div class="field-row" >
+                <input disabled type="checkbox" id="exitBox">
+                <label for="exitBox">is exit?</label>
+                <select disabled id="sceneListForExits">
+                    <option value = " "> </option>
+                </select>
+            </div>
+            <div class="field-row" >
+                <button id="toggleWireframe"> Toggle Wireframe/Shaded </button>
+                <button id="snapToGround"> Snap to Ground (y = 0)</button>
+            </div>
+            <div class="field-row" >
+                <button id="removeObject"> Remove Object </button>
+            </div>
+        </div>  
+    </div>
+    <div class="window" id="imagesMenu" style="left:1100px; top: 350px; width: 400px; visibility: hidden;">
+        <div class="draggable title-bar" id="imagesMenuheader">
+            <div class="title-bar-text">
+                Backgrounds
+            </div>
+            <div class="title-bar-controls">
+                <button aria-label="Close" onclick="document.getElementById('imagesMenu').style.visibility = 'hidden';"></button>
+            </div>
+        </div>
+        <div class="window-body" style="display: flex; overflow: auto;">
+            <section class="field-row" id="imagesMenuBody">
+                <div>
+                <label for="addPhoto" class="custom-file-upload" div style="width: 50px; height: 100px; background-color:bisque; display: flex; justify-content: center; align-items: center; border: 4px solid black; cursor: pointer;"> 
+                    <input type="file" id="addPhoto" style="font-size: large; position: relative;"> + </input>  
+                </label>
+                </div>
+                              
+                <img id="i1" draggable style="height:100px;" src="assets/image1.png">
+                <img id="i2" draggable style="height:100px;" src="assets/image2.png">
+                <img id="i3" draggable style="height:100px;" src="assets/test0.jpg">
+                <img id="i4" draggable style="height:100px;" src="assets/test1.jpg">
+                <img id="i5" draggable style="height:100px;" src="assets/test2.jpg">
+                <img id="i6" draggable style="height:100px;" src="assets/test3.jpg">
+                <img id="i7" draggable style="height:100px;" src="assets/test4.jpg">
+                <img id="i8" draggable style="height:100px;" src="assets/test6.jpg">
+
+            </section>
+        </div>  
+    </div>
+    <div class="window" id="objectsMenu" style="left:1400px; top: 550px; width: 400px; visibility: hidden;">
+        <div class="draggable title-bar" id="objectsMenuheader">
+            <div class="title-bar-text">
+                Objects
+            </div>
+            <div class="title-bar-controls">
+                <button aria-label="Close" onclick="document.getElementById('objectsMenu').style.visibility = 'hidden';"></button>
+            </div>
+        </div>
+        <div class="window-body" style="display: flex;">
+            <section class="field-row" id="objectsMenuBody">
+            </section>
+        </div>  
+    </div>
+
+    <div class="window" id="sceneSelectionMenu" style="position: absolute; left: 700px; top: 640px; z-index: -1; width:300px; visibility: hidden;">
+        <div class="draggable title-bar" id="sceneSelectionMenuheader">
+            <div class="title-bar-text">
+                Scene Selection
+            </div>
+            <div class="title-bar-controls">
+                <button aria-label="Close" onclick="document.getElementById('sceneSelectionMenu').style.visibility = 'hidden';"></button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="field-row">
+                <select id="sceneSelection">
+                    <option value=" ">        </option>
+                    <option value="new">New Scene...</option>
+                </select>
+            </div>
+        </div>
+        
+    </div>
+    <div style="visibility: hidden; position: absolute; left: 1250px; top: 640px; z-index: -1; "> 
+        <img src="assets/notebook.jpg" style="width: 250px;">
+        <p style="position: absolute; top: 125px; left: 75px; color: white;"> Scene Selector </p>
+    </div>
+    <div style="position: absolute; left: 60px; top: 800px; z-index: -1; "> 
+        <img src="assets/sticky.png" style="width: 250px;">
+        <div style="position: absolute; top: 20px; left: 25px;">
+            <section class="field-row">
+                <p>Perspective Line Settings</p>
+            </section>
+            <section class="field-row" id="hideLines">
+                <button>Toggle Lines Visibility</button>
+            </section>
+            <section class="field-row">
+                <p> Axes 1 </p>
+                <select id="axes1Options">
+                    <option value="+X">+X</option>
+                    <option value="-X">-X</option>
+                    <option value="+Y">+Y</option>
+                    <option value="-Y">-Y</option>
+                    <option value="+Z">+Z</option>
+                    <option value="-Z">-Z</option>
+                </select>
+                <div style="background-color:red; width: 20px; height:20px;" id="Axes1Preview"></div>
+            </section>
+            <section class="field-row">
+                <p> Axes 2 </p>
+                <select id="axes2Options">
+                    <option value="+X">+X</option>
+                    <option value="-X">-X</option>
+                    <option value="+Y">+Y</option>
+                    <option value="-Y">-Y</option>
+                    <option value="+Z">+Z</option>
+                    <option value="-Z">-Z</option>
+                </select>
+                <div style="background-color:blue; width: 20px; height:20px;"  id="Axes2Preview"></div>
+            </section>
+            <img src="assets/axes.png" style="position: absolute; width: 75px; left: 125px; top: 150px;">
+        </div>
+    </div>
+    <div style="width:200px; position: absolute; left:320px; top: 850px; width:600px; justify-content: center; display: flex;">
+        <p id="enterSceneText"></p>
+    </div>
+    <div style="width:200px; position: absolute; left:320px; top: 110px; width:600px; justify-content: center; display: flex;">
+        <p> W / E / R to translate, rotate, and scale transforms!</p>
+    </div>
+    <img src="assets/desk3.png" style="top: 0px; left: 0px; width: 1920px; position: absolute; z-index: -200;">
+    <div>
+        <img src="assets/slateRender.png" style="top: 922px; left: 970px; position: absolute; z-index: -190;" class="renderedImage"
+            onclick="const e = document.getElementById('sceneSelectionMenu'); e.style.visibility = 'visible'; e.style.left = '942px'; e.style.top = '900px';"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Scene Select';document.getElementById('HoverText').classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+    </div>
+    <div>
+        <img src="assets/bookRender.png" style="top: 560px; left: 1042px; position: absolute; z-index: -200;" class="renderedImage"
+            onclick="const e = document.getElementById('imagesMenu'); e.style.visibility = 'visible'; e.style.left = '1042px'; e.style.top = '500px';"
+                onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Backgrounds';t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+                onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+    </div>
+    <div>
+        <img src="assets/cubeRender.png" id="addCube" style="top: 762px; left: 1202px; position: absolute; z-index: -200;" class="renderedImage"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Add Cube';t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+    </div>
+    <div>
+        <img src="assets/sphereRender.png" id="addSphere" style="top: 766px; left: 1484px; position: absolute; z-index: -200;" class="renderedImage"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Add Sphere';t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+    </div>
+    <div>
+        <img src="assets/planeRender.png" id="addPlane" style="top: 912px; left: 1350px; position: absolute; z-index: -200;" class="renderedImage"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Add Plane'; t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+    </div>
+    <div>
+        <img src="assets/notebookRender.png" style="top: 906px; left: 1616px; position: absolute; z-index: -200;" class="renderedImage"
+            onclick="const e = document.getElementById('objectsMenu'); e.style.visibility = 'visible'; e.style.left = '1342px'; e.style.top = '500px';"
+            onmouseenter="const t = document.getElementById('HoverText'); const text = document.getElementById('HoverTextSpan'); text.innerHTML = 'Objects'; t.className = 'wordart'; t.classList.add(Themes[Math.floor(Math.random()*Themes.length)]);"
+            onmouseleave="const t = document.getElementById('HoverTextSpan'); t.innerHTML = '';">
+        </img>
+    </div>
+    
+    <h1 id="HoverText" style="position:absolute; left:1300px; top: 550px;" class="wordart rainbow">
+        <span class="text" id="HoverTextSpan"></span>
+    </h1>
+    <script>
+        const Themes = ['purple', 'rainbow', 'blues', 'superhero', 'radial', 'tilt', 'horizon'];
+    </script>
+    <div>
+        <button id="playButton" style="position: absolute; left: 600px; top: 1000px;">PLAY</button>
+    </div>
+
+</body>
+</html>
