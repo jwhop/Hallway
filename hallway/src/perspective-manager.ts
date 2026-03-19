@@ -70,6 +70,7 @@ export class PerspectiveManager{
             this.currentSceneData.axes2LinePoints[1] = points2[1].clone();
             this.currentSceneData.axes2LinePoints[2] = points2[2].clone();
             this.currentSceneData.axes2LinePoints[3] = points2[3].clone();
+            this.currentSceneData.originPoint = new THREE.Vector2(this.origin.getOrigin().x, this.origin.getOrigin().y);
         }
         this.calibrationSettingsBase.firstVanishingPointAxis = this.xPair.getAxis();
         this.calibrationSettingsBase.secondVanishingPointAxis = this.zPair.getAxis();

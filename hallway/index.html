@@ -21,13 +21,13 @@
                 <h1>Welcome to Sidewalks!</h1>
                 <h2>Get started by creating a new scene from the scene selection icon.</h2>
             </div>
-            <div id="blankSceneText" style="visibility: hidden; position: absolute; top: 100px; padding: 20px; width:675px; text-align: center;" >
+            <div id="blankSceneText" style="visibility: hidden; position: absolute; top: 100px; padding: 20px; width:675px; text-align: center; cursor: none; pointer-events: none;" >
                 <h2>I am an empty scene! drag a background onto me from the background selection.</h2>
             </div>
             <img id="myImg">
         </div>
     </div>
-    <div class="window" id="sceneSettingsMenu" style="left:1100px; width: 400px; height: 200px;">
+    <div class="window" id="sceneSettingsMenu" style="left:1100px; width: 400px; height: 200px;visibility: hidden;">
         <div class="draggable title-bar" id="sceneSettingsMenuheader">
             <div class="title-bar-text">
                 Scene Settings
@@ -50,7 +50,7 @@
             </div>
         </div>  
     </div>
-    <div class="window" id="objectPropertiesMenu" style="left:1100px; top: 220px; width: 400px; height: 200px;">
+    <div class="window" id="objectPropertiesMenu" style="left:1100px; top: 220px; width: 400px; height: 200px; visibility: hidden;">
         <div class="draggable title-bar" id="objectPropertiesMenuheader">
             <div class="title-bar-text">
                 Object Settings
@@ -86,9 +86,21 @@
         </div>
         <div class="window-body" style="display: flex; overflow: auto;">
             <section class="field-row" id="imagesMenuBody">
-                <img id="i1" draggable style="height:100px;" src="/assets/image0.jpg">
-                <img id="i2" draggable style="height:100px;" src="/assets/image1.png">
-                <img id="i3" draggable style="height:100px;" src="/assets/image2.png">
+                <div>
+                <label for="addPhoto" class="custom-file-upload" div style="width: 50px; height: 100px; background-color:bisque; display: flex; justify-content: center; align-items: center; border: 4px solid black; cursor: pointer;"> 
+                    <input type="file" id="addPhoto" style="font-size: large; position: relative;"> + </input>  
+                </label>
+                </div>
+                              
+                <img id="i1" draggable style="height:100px;" src="/assets/image1.png">
+                <img id="i2" draggable style="height:100px;" src="/assets/image2.png">
+                <img id="i3" draggable style="height:100px;" src="/assets/test0.jpg">
+                <img id="i4" draggable style="height:100px;" src="/assets/test1.jpg">
+                <img id="i5" draggable style="height:100px;" src="/assets/test2.jpg">
+                <img id="i6" draggable style="height:100px;" src="/assets/test3.jpg">
+                <img id="i7" draggable style="height:100px;" src="/assets/test4.jpg">
+                <img id="i8" draggable style="height:100px;" src="/assets/test6.jpg">
+
             </section>
         </div>  
     </div>
@@ -165,6 +177,12 @@
             </section>
             <img src="./assets/axes.png" style="position: absolute; width: 75px; left: 125px; top: 150px;">
         </div>
+    </div>
+    <div style="width:200px; position: absolute; left:320px; top: 850px; width:600px; justify-content: center; display: flex;">
+        <p id="enterSceneText"></p>
+    </div>
+    <div style="width:200px; position: absolute; left:320px; top: 110px; width:600px; justify-content: center; display: flex;">
+        <p> W / E / R to translate, rotate, and scale transforms!</p>
     </div>
     <img src="./assets/desk3.png" style="top: 0px; left: 0px; width: 1920px; position: absolute; z-index: -200;">
     <div>

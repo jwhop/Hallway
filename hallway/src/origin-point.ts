@@ -14,27 +14,34 @@ export class PerspectiveOriginPoint{
         this.Circle = new Graphics().circle(0, 0, 12).fill('grey');
         this.Circle.position.set(p0.x, p0.y);
         this.Circle.eventMode = 'static';
-        this.Circle.on('pointerdown', (event) => {this.isMouseDown = true; this.rect = c.getBoundingClientRect();});
+        this.Circle.on('pointerdown', (event) => {
+            this.isMouseDown = true;
+            this.rect = this.canvas.getBoundingClientRect();
+        });
         this.Circle.on('pointerup', (event) => {this.isMouseDown = false;});
         this.Circle.on('pointerupoutside', (event) => {this.isMouseDown = false;});
         this.Circle.on('globalpointermove', (event) => {
             if(this.isMouseDown){
-                // this.rect = c.getBoundingClientRect();
-                // if(event.global.x > 0 && event.global.x < this.rect.width){
-                //     this.Circle.position.set(event.global.x, this.Circle.position.y);
-                // }
-                // else if(event.global.x < 0){
-                //     this.Circle.position.set(0, this.Circle.position.y);
-                // }
-                // else{
-                //     this.Circle.position.set(this.rect.width, this.Circle.position.y); 
-                // }
-                // if(event.global.y > 0 && event.global.y < this.rect.height){
-                //     this.Circle.position.set(this.Circle.position.x, event.global.y);
-                // }
-                this.Circle.position.set(event.global.x, event.global.y);
-                this.manager.compute();
-                //this.perspectiveLineParent.redrawLine();
+                if(event.global.x > 0 && event.global.x < this.rect.width){
+                    this.Circle.position.set(event.global.x, this.Circle.position.y);
+                }
+                else if(event.global.x < 0){
+                    this.Circle.position.set(0, this.Circle.position.y);
+                }
+                else{
+                    this.Circle.position.set(this.rect.width, this.Circle.position.y); 
+                }
+                
+                if(event.global.y > 0 && event.global.y < this.rect.height){
+                    this.Circle.position.set(this.Circle.position.x, event.global.y);
+                }
+                else if (event.global.y < 0){
+                    this.Circle.position.set(this.Circle.position.x, 0);
+                }
+                else{
+                    this.Circle.position.set(this.Circle.position.x, this.rect.height);
+                }
+                //this.Circle.position.set(event.global.x, event.global.y);
             }
         });
         this.isMouseDown = false;

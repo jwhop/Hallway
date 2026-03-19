@@ -17,31 +17,39 @@ export class PerspectiveLineEndpoint{
         this.Circle = new Graphics().circle(0, 0, 12).fill(this.color);
         this.Circle.position.set(p0.x, p0.y);
         this.Circle.eventMode = 'static';
-        this.Circle.on('pointerdown', (event) => {this.isMouseDown = true;});
+        this.Circle.on('pointerdown', (event) => {
+            this.isMouseDown = true;
+            this.rect = this.canvas.getBoundingClientRect();
+        });
         this.Circle.on('pointerup', (event) => {this.isMouseDown = false;});
         this.Circle.on('pointerupoutside', (event) => {this.isMouseDown = false;});
         this.Circle.on('globalpointermove', (event) => {
             if(this.isMouseDown){
-                // this.rect = c.getBoundingClientRect();
-                // if(event.global.x > 0 && event.global.x < this.rect.width){
-                //     this.Circle.position.set(event.global.x, this.Circle.position.y);
-                // }
-                // else if(event.global.x < 0){
-                //     this.Circle.position.set(0, this.Circle.position.y);
-                // }
-                // else{
-                //     this.Circle.position.set(this.rect.width, this.Circle.position.y); 
-                // }
-                // if(event.global.y > 0 && event.global.y < this.rect.height){
-                //     this.Circle.position.set(this.Circle.position.x, event.global.y);
-                // }
-                this.Circle.position.set(event.global.x, event.global.y);
+                if(event.global.x > 0 && event.global.x < this.rect.width){
+                    this.Circle.position.set(event.global.x, this.Circle.position.y);
+                }
+                else if(event.global.x < 0){
+                    this.Circle.position.set(0, this.Circle.position.y);
+                }
+                else{
+                    this.Circle.position.set(this.rect.width, this.Circle.position.y); 
+                }
+                
+                if(event.global.y > 0 && event.global.y < this.rect.height){
+                    this.Circle.position.set(this.Circle.position.x, event.global.y);
+                }
+                else if (event.global.y < 0){
+                    this.Circle.position.set(this.Circle.position.x, 0);
+                }
+                else{
+                    this.Circle.position.set(this.Circle.position.x, this.rect.height);
+                }
+                //this.Circle.position.set(event.global.x, event.global.y);
                 this.perspectiveLineParent.redrawLine();
             }
         });
         this.isMouseDown = false;
         this.perspectiveLineParent = line;
-        //console.log(this.Circle.position);
     }
 
     getCircle(){
@@ -60,14 +68,37 @@ export class PerspectiveLineEndpoint{
         this.Circle.position.set(x,y);
         this.perspectiveLineParent.getContainer().addChild(this.Circle);
         this.Circle.eventMode = 'static';
-        this.Circle.on('pointerdown', (event) => {this.isMouseDown = true;});
+        this.Circle.on('pointerdown', (event) => {
+            this.isMouseDown = true;
+            this.rect = this.canvas.getBoundingClientRect();
+        });
         this.Circle.on('pointerup', (event) => {this.isMouseDown = false;});
         this.Circle.on('pointerupoutside', (event) => {this.isMouseDown = false;});
         this.Circle.on('globalpointermove', (event) => {
             if(this.isMouseDown){
-                this.Circle.position.set(event.global.x, event.global.y);
+                if(event.global.x > 0 && event.global.x < this.rect.width){
+                    this.Circle.position.set(event.global.x, this.Circle.position.y);
+                }
+                else if(event.global.x < 0){
+                    this.Circle.position.set(0, this.Circle.position.y);
+                }
+                else{
+                    this.Circle.position.set(this.rect.width, this.Circle.position.y); 
+                }
+                
+                if(event.global.y > 0 && event.global.y < this.rect.height){
+                    this.Circle.position.set(this.Circle.position.x, event.global.y);
+                }
+                else if (event.global.y < 0){
+                    this.Circle.position.set(this.Circle.position.x, 0);
+                }
+                else{
+                    this.Circle.position.set(this.Circle.position.x, this.rect.height);
+                }
+                //this.Circle.position.set(event.global.x, event.global.y);
                 this.perspectiveLineParent.redrawLine();
             }
         });
     }
+
 }

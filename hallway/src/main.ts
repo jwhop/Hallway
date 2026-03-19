@@ -15,7 +15,7 @@ import { PerspectiveOriginPoint } from './origin-point';
 export class SceneData{
   scene: THREE.Scene;
   camera: THREE.Camera;
-  name!: string;
+  public name!: string;
   introText!: string;
   imgUrl: string;
   id: string;
@@ -27,6 +27,7 @@ export class SceneData{
   axes1LinePoints: [THREE.Vector2, THREE.Vector2, THREE.Vector2, THREE.Vector2];
   axes2Type: Axis;
   axes2LinePoints: [THREE.Vector2, THREE.Vector2, THREE.Vector2, THREE.Vector2];
+  originPoint: THREE.Vector2;
   playerRunSpeed: number;
   onSceneEnterText: string;
   playerScale: THREE.Vector3;
@@ -41,7 +42,7 @@ export class SceneData{
     this.axes1LinePoints = [new THREE.Vector2(200,200), new THREE.Vector2(300,300), new THREE.Vector2(300,200), new THREE.Vector2(400,300)];
     this.axes2Type = Axis.PositiveZ;
     this.axes2LinePoints = [new THREE.Vector2(200,400), new THREE.Vector2(300,500), new THREE.Vector2(300,400), new THREE.Vector2(400,500)];
-  
+    this.originPoint = new THREE.Vector2(400,400);
     this.playerRunSpeed = 2;
     this.onSceneEnterText = "";
     this.playerScale = new THREE.Vector3(1,1,1);
@@ -77,7 +78,7 @@ async function convertStringToGameData(s : string) : Promise<GameData>{
       const scene = g.scenes[s] as SceneData;
       console.log(g);
       scene.camera = loader.parse(scene.camera);
-      if(scene.scene.geometries.find(g=>g.type == "RoundedBoxGeometry")){
+      if(scene.scene != null && scene.scene.geometries.find(g=>g.type == "RoundedBoxGeometry")){
         //remove geometry
         const g = scene.scene.geometries.find(g=>g.type == "RoundedBoxGeometry");
         scene.scene.geometries.splice(scene.scene.geometries.indexOf(g), 1);
@@ -158,7 +159,7 @@ function stringToAxis(s : string) : Axis {
     // prevent default action (open as a link for some elements)
     event.preventDefault();
     // move dragged element to the selected drop target
-    if ((event.target as HTMLElement)!.className === "insideWrapper") {
+    if ((event.target as HTMLElement)!.className === "insideWrapper" && dragged != null) {
       newScene(dragged!.src);
     }
   }
@@ -171,54 +172,105 @@ function stringToAxis(s : string) : Axis {
   // Hacky solution for GDC: iterate through urls and load images til one throws an error
   /////////////////////////////////////////////////////
 
-  async function loadImage(num: number, cb: Function){
-    var img = document.createElement("img");
-    const reader = new FileReader();
+  // async function loadImage(num: number, cb: Function){
+  //   var img = document.createElement("img");
+  //   const reader = new FileReader();
     
-    reader.onload = function(e){
-      console.log("loaded reader");
-    }
-    document.getElementById("i1")?.addEventListener("dragstart", (event) => {
-          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
-          dragged = (event.target as HTMLImageElement);   
-    });
+  //   reader.onload = function(e){
+  //     console.log("loaded reader");
+  //   }
+    
+  //   img.onload = function(){
+  //       img.height = 100;
+  //       img.draggable = true;
+  //       img.addEventListener("dragstart", (event) => {
+  //         dragged = (event.target as HTMLImageElement);   
+  //       })
+  //       imagesMenu?.append(img);
+  //       console.log('loaded image');
+  //       cb();
+  //   };
 
-    document.getElementById("i2")?.addEventListener("dragstart", (event) => {
-          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
-          dragged = (event.target as HTMLImageElement);   
-    });
-    document.getElementById("i3")?.addEventListener("dragstart", (event) => {
-          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
-          dragged = (event.target as HTMLImageElement);   
-    });
-    img.onload = function(){
-        img.height = 100;
-        img.draggable = true;
-        img.addEventListener("dragstart", (event) => {
-          event.dataTransfer?.setData("text", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA");     
-          dragged = (event.target as HTMLImageElement);   
-        })
-        imagesMenu?.append(img);
-        console.log('loaded image');
-        cb();
-    };
+  //   img.onerror = function(err){
+  //       console.log('error:', err);
+  //       cb(err);
+  //   };
 
-    img.onerror = function(err){
-        console.log('error:', err);
-        cb(err);
-    };
+  //   console.log('attempting to load image:' + num);
+  //   img.src = "http://file.garden/aacEYOWK43Nd2sJg/test" + num.toString() + ".jpg";
+  // };
 
-    console.log('attempting to load image:' + num);
-    img.src = "http://file.garden/aacEYOWK43Nd2sJg/test" + num.toString() + ".jpg";
-  };
-
-  async function loadSequential(first : number){
-    await loadImage(first, function(err){
-        if(!err) { loadSequential(first + 1); }
-    });  
-  }
+  // async function loadSequential(first : number){
+  //   await loadImage(first, function(err){
+  //       if(!err) { loadSequential(first + 1); }
+  //   });  
+  // }
   
-  await loadSequential(0);
+  // await loadSequential(0);
+
+  // async function loadImagePNG(num: number, cb: Function){
+  //   var img = document.createElement("img");
+  //   const reader = new FileReader();
+    
+  //   reader.onload = function(e){
+  //     console.log("loaded reader");
+  //   }
+    
+  //   img.onload = function(){
+  //       img.height = 100;
+  //       img.draggable = true;
+  //       img.addEventListener("dragstart", (event) => {
+  //         dragged = (event.target as HTMLImageElement);   
+  //       })
+  //       imagesMenu?.append(img);
+  //       console.log('loaded image');
+  //       cb();
+  //   };
+
+  //   img.onerror = function(err){
+  //       console.log('error:', err);
+  //       cb(err);
+  //   };
+
+  //   console.log('attempting to load image:' + num);
+  //   img.src = "http://file.garden/aacEYOWK43Nd2sJg/test" + num.toString() + ".png";
+  // };
+
+  // async function loadSequentialPNG(first : number){
+  //   await loadImagePNG(first, function(err){
+  //       if(!err) { loadSequentialPNG(first + 1); }
+  //   });  
+  // }
+  
+  // await loadSequentialPNG(0);
+
+  //////////////////////////////////////////////////////
+  // For when you are running locally and dont need to look at file garden
+  //////////////////////////////////////////////////////
+
+  const addPhotoButton = document.getElementById("addPhoto");
+  addPhotoButton?.addEventListener('change', function() {
+     for (const file of this.files!) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      img.height = 100;
+      img.draggable = true;
+      img.addEventListener("dragstart", (event) => {
+        dragged = (event.target as HTMLImageElement);   
+      })
+      imagesMenu?.append(img);
+      console.log('loaded image');
+    }
+  });
+
+  //for starter photos
+  for(let i = 1; i < 9; i++){
+    const starterImg = document.getElementById("i" + i.toString());
+    starterImg!.draggable = true;
+    starterImg!.addEventListener("dragstart", (event) => {
+        dragged = (event.target as HTMLImageElement);   
+    })
+  }
 
   //////////////////////////////////////////////////////
   // Initialize Editor
@@ -251,7 +303,7 @@ function stringToAxis(s : string) : Axis {
   // Create z and x perspective lines
   const perspectiveLinePairX = new PerspectiveLinePair('red', null, Axis.PositiveX, app.canvas, new THREE.Vector2(200, 200), new THREE.Vector2(300, 300), new THREE.Vector2(300, 200), new THREE.Vector2(400, 300));
   const perspectiveLinePairZ = new PerspectiveLinePair('blue', null, Axis.NegativeZ, app.canvas, new THREE.Vector2(200, 400), new THREE.Vector2(300, 500), new THREE.Vector2(300, 400), new THREE.Vector2(400, 500));
-  const origin = new PerspectiveOriginPoint(app.canvas, new THREE.Vector2(400, 600));
+  const origin = new PerspectiveOriginPoint(app.canvas, new THREE.Vector2(400, 400));
   // Create perspective manager
   const perspectiveManager = new PerspectiveManager(perspectiveLinePairX, perspectiveLinePairZ, origin, null);
   perspectiveLinePairX.assignManager(perspectiveManager);
@@ -481,9 +533,9 @@ function stringToAxis(s : string) : Axis {
   async function sceneSelectionChanged(e: Event){
     console.log("started scene selection change");
     const target = e.currentTarget as HTMLInputElement;
+    await save();
     if(target.value == 'new'){
 
-      await save();
       // Create new option div
       const newScene = document.createElement('option');
 
@@ -523,6 +575,7 @@ function stringToAxis(s : string) : Axis {
     else{
       document.getElementById("blankSceneText").style.visibility = "hidden";
       document.getElementById("welcomeSceneText").style.visibility = "hidden";
+      document.getElementById("sceneSettingsMenu")!.style.visibility = "visible";
       const sceneName = sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML;
       const scene = currentGameData.scenes.find(s=>s.name == sceneName);
       console.log("about to populate scene");
@@ -551,8 +604,12 @@ function stringToAxis(s : string) : Axis {
 
 
   function changeSceneName(){
-    currentSceneData?.setName((sceneSettingsNameInputElement as HTMLInputElement).value);
+    if(!currentSceneData) return;
+    console.log(currentSceneData.scene); 
+    debugger
+    currentSceneData.name = ((sceneSettingsNameInputElement as HTMLInputElement).value);
     sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML = (sceneSettingsNameInputElement as HTMLInputElement).value;
+    save();
   }
   
   function addPlane(e: Event){
@@ -576,7 +633,7 @@ function stringToAxis(s : string) : Axis {
   }
 
   function addCube(){
-    if(isInPlayMode) return;
+    if(isInPlayMode || currentScene == null) return;
     if(currentEnvironmentMeshes == null) return;
     isSPawning = true;
     const p = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1, 10, 10, 10), editorMaterial);
@@ -960,7 +1017,6 @@ function stringToAxis(s : string) : Axis {
         new THREE.MeshStandardMaterial()
       );
       newPlayer.name = "player";
-      newPlayer.layers.set(1);
       newPlayer.renderOrder = 0;
       //newPlayer.geometry.translate( 0, 0.5, 0 );
       //newPlayer.position.set(0,0.0,0);
@@ -989,7 +1045,7 @@ function stringToAxis(s : string) : Axis {
       
       // Done initializing new scene, now we populate current scene with it
       const newSceneData = new SceneData(newScene, newCamera, imgUrl, currentSceneID, imgData);
-      newSceneData.setName(sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML)
+      newSceneData.setName(sceneSelectionSelectElement.options[sceneSelectionSelectElement.selectedIndex].innerHTML);
       currentGameData.scenes.push(newSceneData);
       await populateScene(newSceneData);
       isLoading = false;
@@ -1063,7 +1119,6 @@ function stringToAxis(s : string) : Axis {
       );
       newPlayer.name = "player";
       newPlayer.scale.set(currentSceneData.playerScale.x, currentSceneData.playerScale.y, currentSceneData.playerScale.z);
-      newPlayer.layers.set(1);
       //newPlayer.geometry.translate( 0, 0.5, 0 );
       //newPlayer.position.set(0,0.0,0);
       newPlayer.userData.capsuleInfo = {
@@ -1096,19 +1151,23 @@ function stringToAxis(s : string) : Axis {
     perspectiveManager.assignCamera(currentCamera as THREE.PerspectiveCamera);
     perspectiveManager.assignImage(currentSceneData.imgData);
     perspectiveManager.assignSceneData(null);
-    if(populateImg){
-      perspectiveLinePairX.resetPoints(currentSceneData.axes1Type, currentSceneData.axes1LinePoints);
-      perspectiveLinePairZ.resetPoints(currentSceneData.axes2Type, currentSceneData.axes2LinePoints);
-    }
-    perspectiveManager.assignSceneData(currentSceneData);
 
+    perspectiveLinePairX.resetPoints(currentSceneData.axes1Type, currentSceneData.axes1LinePoints);
+    perspectiveLinePairZ.resetPoints(currentSceneData.axes2Type, currentSceneData.axes2LinePoints);
+    origin.assignPoint(currentSceneData.originPoint== null? 400 : currentSceneData.originPoint.x, currentSceneData.originPoint == null? 400 : currentSceneData.originPoint.y);
+    
+    perspectiveManager.assignSceneData(currentSceneData);
+    perspectiveManager.compute();
     //switching to this scene via an exit in play mode 
     if(isInPlayMode){
       isInPlayMode = false;
+      app.stage.visible = false;
       readySceneGeometryforPlay();
       readyCurrentSceneForPlay();
     }
     else{
+      app.stage.visible = true;
+
       currentEnvironmentMeshes?.traverse((mesh) => {
         if(mesh.isMesh){
           mesh.material.visible = true;
@@ -1121,6 +1180,10 @@ function stringToAxis(s : string) : Axis {
         }
       });
 
+      const enterText = document.getElementById("enterSceneText");
+      if(enterText){
+        enterText.innerHTML = currentSceneData.onSceneEnterText;
+      }
 
     }
   }
@@ -1284,10 +1347,31 @@ function stringToAxis(s : string) : Axis {
       })
       currentPlayer.material.visible = false;
     }
-    if(currentScene?.children.find(c=>c.name =="light")){
+    else{
+          
+      let newPlayer = new THREE.Mesh(
+        new RoundedBoxGeometry( 1.0, 2.0, 1.0, 10, 0.5 ),
+        new THREE.MeshStandardMaterial()
+      );
+      newPlayer.name = "player";
+      newPlayer.scale.set(currentSceneData.playerScale.x, currentSceneData.playerScale.y, currentSceneData.playerScale.z);
+      //newPlayer.geometry.translate( 0, 0.5, 0 );
+      //newPlayer.position.set(0,0.0,0);
+      newPlayer.userData.capsuleInfo = {
+        radius: 0.5,
+        segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0,  0.0, 0.0 ) )
+      };
+      currentScene!.add(newPlayer);
+      currentPlayer = newPlayer;
+    
+    }
+    if(!currentScene?.children.find(c=>c.name =="light")){
       const light = new THREE.AmbientLight(0xffffff, 2);
       light.name = "light";
       currentScene?.add(light);
+    }
+    if(currentScene?.children.find(c=>c.name =="axesHelper")){
+      currentScene?.children.find(c=>c.name =="axesHelper")?.removeFromParent();
     }
   }
 
